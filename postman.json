@@ -1,0 +1,246 @@
+{
+  "info": {
+    "name": "Gasopay Winsurf API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users"
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullname\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+2348012345678\",\n  \"password\": \"password123\",\n  \"role\": \"Rider\",\n  \"branch_id\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users/1"
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/users/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullname\": \"John Smith\",\n  \"email\": \"john.smith@example.com\",\n  \"phone\": \"+2348012345678\",\n  \"role\": \"Rider\",\n  \"branch_id\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/users/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/products"
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/products",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Premium Gas\",\n  \"unit\": \"Liters\",\n  \"price\": 200.50,\n  \"extra\": {\n    \"description\": \"High quality gas\",\n    \"category\": \"Premium\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Product",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/products/1"
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/products/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Premium Gas Plus\",\n  \"unit\": \"Liters\",\n  \"price\": 220.50,\n  \"extra\": {\n    \"description\": \"Premium quality gas\",\n    \"category\": \"Premium Plus\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/products/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Branches",
+      "item": [
+        {
+          "name": "List Branches",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/branches"
+          }
+        },
+        {
+          "name": "Create Branch",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/branches",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lagos Branch\",\n  \"location\": \"123 Lagos Street\",\n  \"branch_admin\": 1,\n  \"branch_phone\": \"+2348012345678\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Branch",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/branches/1"
+          }
+        },
+        {
+          "name": "Update Branch",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/branches/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lagos Main Branch\",\n  \"location\": \"124 Lagos Street\",\n  \"branch_admin\": 2,\n  \"branch_phone\": \"+2348012345679\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete Branch",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/branches/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Profiles",
+      "item": [
+        {
+          "name": "List User Profiles",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/user-profiles"
+          }
+        },
+        {
+          "name": "Create User Profile",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/user-profiles",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": 1,\n  \"phone\": \"+2348012345678\",\n  \"address\": \"123 User Street, Lagos\",\n  \"vehicle_type_id\": 1,\n  \"nin\": \"12345678901\",\n  \"guarantors_name\": \"Jane Smith\",\n  \"photo\": null,\n  \"barcode\": \"USER123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/user-profiles/1"
+          }
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/user-profiles/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+2348012345679\",\n  \"address\": \"124 User Street, Lagos\",\n  \"vehicle_type_id\": 2,\n  \"nin\": \"12345678901\",\n  \"guarantors_name\": \"Jane Doe\",\n  \"photo\": null,\n  \"barcode\": \"USER123457\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete User Profile",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/user-profiles/1"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    }
+  ]
+}
