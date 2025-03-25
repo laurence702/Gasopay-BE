@@ -21,7 +21,7 @@ class ForceJsonResponse
             return response()->json([  
                 'message' => 'Only JSON responses are allowed.',  
                 'status' => 'error',  
-            ], JsonResponse::HTTP_UNACCEPTABLE);  
+            ], 406); // HTTP 406 Not Acceptable  
         }  
 
         return $response;  

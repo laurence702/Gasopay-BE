@@ -20,27 +20,54 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// User routes
-Route::get('/users', [UserController::class, 'index']);
-Route::post('/users', [UserController::class, 'store']);
-Route::get('/users/{user}', [UserController::class, 'show']);
-Route::put('/users/{user}', [UserController::class, 'update']);
-Route::delete('/users/{user}', [UserController::class, 'destroy']);
-
 // Auth routes
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
-Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum');
+Route::post('/register', [AuthController::class, 'register'])->name('register');
+Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
+Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum')->name('user');
 
 // Protected routes
 Route::middleware(['auth:sanctum'])->group(function () {
+    // User routes
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
+    // Product routes
+    Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+    Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
+    Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+    // Branch routes
+    Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
+    Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
+    Route::get('/branches/{branch}', [BranchController::class, 'show'])->name('branches.show');
+    Route::put('/branches/{branch}', [BranchController::class, 'update'])->name('branches.update');
+    Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])->name('branches.destroy');
+
+    // User Profile routes
+    Route::get('/user-profiles', [UserProfileController::class, 'index'])->name('user-profiles.index');
+    Route::post('/user-profiles', [UserProfileController::class, 'store'])->name('user-profiles.store');
+    Route::get('/user-profiles/{userProfile}', [UserProfileController::class, 'show'])->name('user-profiles.show');
+    Route::put('/user-profiles/{userProfile}', [UserProfileController::class, 'update'])->name('user-profiles.update');
+    Route::delete('/user-profiles/{userProfile}', [UserProfileController::class, 'destroy'])->name('user-profiles.destroy');
+
+    // Vehicle Type routes
+    Route::get('/vehicle-types', [VehicleTypeController::class, 'index'])->name('vehicle-types.index');
+    Route::post('/vehicle-types', [VehicleTypeController::class, 'store'])->name('vehicle-types.store');
+    Route::get('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'show'])->name('vehicle-types.show');
+    Route::put('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'update'])->name('vehicle-types.update');
+    Route::delete('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'destroy'])->name('vehicle-types.destroy');
+
     // Admin routes
     Route::middleware(['role:admin'])->prefix('admin')->group(function () {
         //create account for Rider function
         //Add rider payment
-        Route::post('/rider', [RiderController::class, 'store']);
-        // Add admin specific routes here
+        Route::post('/rider', [RiderController::class, 'store'])->name('admin.rider.store');
     });
     
     // Rider routes
@@ -53,33 +80,3 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Add regular user specific routes here
     });
 });
-
-      // Product routes
-      Route::get('/products', [ProductController::class, 'index']);
-      Route::post('/products', [ProductController::class, 'store']);
-      Route::get('/products/{product}', [ProductController::class, 'show']);
-      Route::put('/products/{product}', [ProductController::class, 'update']);
-      Route::delete('/products/{product}', [ProductController::class, 'destroy']);
-
-      // Branch routes
-      Route::get('/branches', [BranchController::class, 'index']);
-      Route::post('/branches', [BranchController::class, 'store']);
-      Route::get('/branches/{branch}', [BranchController::class, 'show']);
-      Route::put('/branches/{branch}', [BranchController::class, 'update']);
-      Route::delete('/branches/{branch}', [BranchController::class, 'destroy']);
-
-      // User Profile routes
-      Route::get('/user-profiles', [UserProfileController::class, 'index']);
-      Route::post('/user-profiles', [UserProfileController::class, 'store']);
-      Route::get('/user-profiles/{userProfile}', [UserProfileController::class, 'show']);
-      Route::put('/user-profiles/{userProfile}', [UserProfileController::class, 'update']);
-      Route::delete('/user-profiles/{userProfile}', [UserProfileController::class, 'destroy']);
-
-      // Vehicle Type routes
-      Route::get('/vehicle-types', [VehicleTypeController::class, 'index']);
-      Route::post('/vehicle-types', [VehicleTypeController::class, 'store']);
-      Route::get('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'show']);
-      Route::put('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'update']);
-      Route::delete('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'destroy']);
-
-
