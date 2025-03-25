@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
-Route::get('/user', [AuthController::class, 'user'])->middleware('auth:sanctum')->name('user');
+Route::get('/me', [AuthController::class, 'loggedInUser'])->name('user');
 
 // Protected routes
 Route::middleware(['auth:sanctum'])->group(function () {

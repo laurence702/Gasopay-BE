@@ -50,12 +50,20 @@ class AuthController extends Controller
         }
 
         $user = User::where('email', $request->email)->firstOrFail();
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $user->createToken('token')->plainTextToken;
 
         return response()->json([
             'message' => 'Logged in successfully',
             'user' => $user,
             'token' => $token
+        ]);
+    }
+
+    public function loggedInUser(Request $request)
+    {
+        $token = $request->bearerToken();
+        return response()->json([
+            'user' => $request->user()
         ]);
     }
 
