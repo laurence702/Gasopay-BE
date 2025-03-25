@@ -11,6 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::create('branches', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->nullable();
+            $table->string('location');
+            $table->foreignId('branch_admin')->constrained('users')->cascadeOnDelete();
+            $table->string('branch_phone')->nullable();
+        $table->timestamps();
+    });
+
         Schema::table('users', function (Blueprint $table) {
             $table->string('fullname')->after('id');
             $table->string('phone')->unique()->after('email');
@@ -20,11 +29,10 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
+
     public function down(): void
     {
+        Schema::dropIfExists('branches');
         Schema::table('users', function (Blueprint $table) {
             $table->string('name');
             $table->dropForeign(['branch_id']);

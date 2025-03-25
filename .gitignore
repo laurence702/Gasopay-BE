@@ -22,3 +22,4 @@ yarn-error.log
 /.vscode
 /.zed
 postman.json
+.DS_Store
