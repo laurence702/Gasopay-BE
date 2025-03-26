@@ -3,43 +3,48 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Resources\VehicleTypeResource;
 use App\Models\VehicleType;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class VehicleTypeController extends Controller
 {
-    public function index()
+    public function index(): AnonymousResourceCollection
     {
-        return VehicleType::all();
+        $vehicleTypes = VehicleType::all();
+        return VehicleTypeResource::collection($vehicleTypes);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): VehicleTypeResource
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+        $validated = $request->validate([
+            'name' => 'required|string|unique:vehicle_types,name',
         ]);
 
-        return VehicleType::create($validatedData);
+        $vehicleType = VehicleType::create($validated);
+
+        return new VehicleTypeResource($vehicleType);
     }
 
-    public function show(VehicleType $vehicleType)
+    public function show(VehicleType $vehicleType): VehicleTypeResource
     {
-        return $vehicleType;
+        return new VehicleTypeResource($vehicleType);
     }
 
-    public function update(Request $request, VehicleType $vehicleType)
+    public function update(Request $request, VehicleType $vehicleType): VehicleTypeResource
     {
-        $validatedData = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+        $validated = $request->validate([
+            'name' => 'required|string|unique:vehicle_types,name,' . $vehicleType->id,
         ]);
 
-        $vehicleType->update($validatedData);
-        return $vehicleType;
+        $vehicleType->update($validated);
+
+        return new VehicleTypeResource($vehicleType);
     }
 
-    public function destroy(VehicleType $vehicleType)
+    public function destroy(VehicleType $vehicleType): JsonResponse
     {
         $vehicleType->delete();
         return response()->json(null, 204);

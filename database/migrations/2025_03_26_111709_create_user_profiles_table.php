@@ -6,21 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
-        Schema::create('vehicle_types', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->timestamps();
-        });
-
         Schema::create('user_profiles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('vehicle_type_id')->constrained()->onDelete('cascade');
             $table->string('phone');
-            $table->string('address')->nullable();
-            $table->foreignId('vehicle_type_id')->nullable()->constrained()->nullOnDelete();
+            $table->text('address');
             $table->string('nin')->nullable();
             $table->string('guarantors_name')->nullable();
             $table->string('photo')->nullable();
@@ -29,10 +25,11 @@ return new class extends Migration
         });
     }
 
-
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('user_profiles');
-        Schema::dropIfExists('vehicle_types');
     }
 };

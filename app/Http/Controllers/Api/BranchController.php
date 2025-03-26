@@ -3,17 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreBranchRequest;
-use App\Http\Requests\UpdateBranchRequest;
 use App\Http\Resources\BranchCollection;
 use App\Http\Resources\BranchResource;
 use App\Models\Branch;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class BranchController extends Controller
 {
-    public function index(Request $request): BranchCollection
+    public function index(Request $request)
     {
         $branches = Branch::query()
             ->when($request->search, function ($query, $search) {
@@ -21,37 +22,89 @@ class BranchController extends Controller
                     ->orWhere('location', 'like', "%{$search}%")
                     ->orWhere('branch_phone', 'like', "%{$search}%");
             })
-            ->with(['admin', 'users'])
             ->paginate();
 
         return new BranchCollection($branches);
     }
 
-    public function store(StoreBranchRequest $request): BranchResource
+    public function store(Request $request)
     {
-        $branch = Branch::create($request->validated());
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'location' => 'required|string|max:255',
+                'branch_phone' => 'required|string|max:20',
+            ]);
 
-        return new BranchResource($branch->load(['admin', 'users']));
+            $branch = Branch::create($validated);
+            return new BranchResource($branch);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => $e->errors(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (AuthorizationException $e) {
+            return response()->json([
+                'message' => 'You are not authorized to perform this action.',
+            ], Response::HTTP_FORBIDDEN);
+        }
     }
 
-    public function show(Branch $branch): BranchResource
+    public function show(Branch $branch)
     {
-        return new BranchResource($branch->load(['admin', 'users']));
+        try {
+            return new BranchResource($branch);
+        } catch (NotFoundHttpException $e) {
+            return response()->json([
+                'message' => 'Branch not found.',
+            ], Response::HTTP_NOT_FOUND);
+        } catch (AuthorizationException $e) {
+            return response()->json([
+                'message' => 'You are not authorized to perform this action.',
+            ], Response::HTTP_FORBIDDEN);
+        }
     }
 
-    public function update(UpdateBranchRequest $request, Branch $branch): BranchResource
+    public function update(Request $request, Branch $branch)
     {
-        $branch->update($request->validated());
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'location' => 'required|string|max:255',
+                'branch_phone' => 'required|string|max:20',
+            ]);
 
-        return new BranchResource($branch->load(['admin', 'users']));
+            $branch->update($validated);
+            return new BranchResource($branch);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => $e->errors(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (NotFoundHttpException $e) {
+            return response()->json([
+                'message' => 'Branch not found.',
+            ], Response::HTTP_NOT_FOUND);
+        } catch (AuthorizationException $e) {
+            return response()->json([
+                'message' => 'You are not authorized to perform this action.',
+            ], Response::HTTP_FORBIDDEN);
+        }
     }
 
-    public function destroy(Branch $branch): JsonResponse
+    public function destroy(Branch $branch)
     {
-        $branch->delete();
-
-        return response()->json([
-            'message' => 'Branch deleted successfully'
-        ]);
+        try {
+            $branch->delete();
+            return response()->noContent();
+        } catch (NotFoundHttpException $e) {
+            return response()->json([
+                'message' => 'Branch not found.',
+            ], Response::HTTP_NOT_FOUND);
+        } catch (AuthorizationException $e) {
+            return response()->json([
+                'message' => 'You are not authorized to perform this action.',
+            ], Response::HTTP_FORBIDDEN);
+        }
     }
 }

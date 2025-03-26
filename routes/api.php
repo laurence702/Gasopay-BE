@@ -42,12 +42,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 
-    // Branch routes
-    Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
-    Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
-    Route::get('/branches/{branch}', [BranchController::class, 'show'])->name('branches.show');
-    Route::put('/branches/{branch}', [BranchController::class, 'update'])->name('branches.update');
-    Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])->name('branches.destroy');
 
     // User Profile routes
     Route::get('/user-profiles', [UserProfileController::class, 'index'])->name('user-profiles.index');
@@ -64,10 +58,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'destroy'])->name('vehicle-types.destroy');
 
     // Admin routes
-    Route::middleware(['role:admin'])->prefix('admin')->group(function () {
-        //create account for Rider function
-        //Add rider payment
-        Route::post('/rider', [RiderController::class, 'store'])->name('admin.rider.store');
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
+        Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
+        Route::get('/branches/{branch}', [BranchController::class, 'show'])->name('branches.show');
+        Route::put('/branches/{branch}', [BranchController::class, 'update'])->name('branches.update');
+        Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])->name('branches.destroy');
     });
     
     // Rider routes

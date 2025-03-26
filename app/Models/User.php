@@ -64,4 +64,25 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Branch::class);
     }
+
+    /**
+     * Check if the user has a specific role.
+     *
+     * @param string $role
+     * @return bool
+     */
+    public function hasRole(string $role): bool
+    {
+        if (!$this->role) {
+            return false;
+        }
+
+        // Convert the role string to enum case
+        $roleEnum = RoleEnum::tryFrom(strtolower($role));
+        if (!$roleEnum) {
+            return false;
+        }
+
+        return $this->role === $roleEnum;
+    }
 }
