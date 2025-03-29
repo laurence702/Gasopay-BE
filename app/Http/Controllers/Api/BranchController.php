@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Foundation\Validation\ValidatesRequests;
-use Illuminate\Routing\Controller as BaseController;
+use App\Http\Controllers\Controller;
 use App\Http\Resources\BranchCollection;
 use App\Http\Resources\BranchResource;
 use App\Models\Branch;
@@ -16,20 +14,13 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Foundation\Validation\ValidatesRequests;
 
 class BranchController extends BaseController
 {
     use AuthorizesRequests, ValidatesRequests;
-
-    public function __construct()
-    {
-        $this->middleware(function ($request, $next) {
-            if (Auth::user()->role !== RoleEnum::Admin) {
-                throw new AuthorizationException('You are not authorized to perform this action.');
-            }
-            return $next($request);
-        })->except(['show']);
-    }
 
     public function index(Request $request)
     {
@@ -94,18 +85,9 @@ class BranchController extends BaseController
     public function show(Branch $branch)
     {
         try {
-            // Allow access if user is admin or the branch admin
-            if (Auth::user()->role !== RoleEnum::Admin && Auth::user()->id !== $branch->branch_admin) {
-                throw new AuthorizationException('You are not authorized to perform this action.');
-            }
-
             return new BranchResource($branch->load('branchAdmin'));
         } catch (ModelNotFoundException $e) {
             return $this->notFound();
-        } catch (AuthorizationException $e) {
-            return response()->json([
-                'message' => 'You are not authorized to perform this action.',
-            ], Response::HTTP_FORBIDDEN);
         }
     }
 
@@ -127,26 +109,17 @@ class BranchController extends BaseController
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (ModelNotFoundException $e) {
             return $this->notFound();
-        } catch (AuthorizationException $e) {
-            return response()->json([
-                'message' => 'You are not authorized to perform this action.',
-            ], Response::HTTP_FORBIDDEN);
         }
     }
 
     public function destroy(Branch $branch)
     {
         try {
-            // Delete the branch admin user
             User::where('id', $branch->branch_admin)->delete();
             $branch->delete();
             return response()->noContent();
         } catch (ModelNotFoundException $e) {
             return $this->notFound();
-        } catch (AuthorizationException $e) {
-            return response()->json([
-                'message' => 'You are not authorized to perform this action.',
-            ], Response::HTTP_FORBIDDEN);
         }
     }
 }

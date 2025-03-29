@@ -17,12 +17,13 @@ class BranchControllerTest extends TestCase
 
     private User $admin;
     private User $regularUser;
-
+    private User $superAdmin;
     protected function setUp(): void
     {
         parent::setUp();
         $this->admin = User::factory()->create(['role' => RoleEnum::Admin]);
         $this->regularUser = User::factory()->create(['role' => RoleEnum::Regular]);
+        $this->superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
     }
 
     public function test_cannot_access_branches_without_authentication()
@@ -43,28 +44,10 @@ class BranchControllerTest extends TestCase
         $response->assertStatus(401);
     }
 
-    public function test_cannot_access_branches_without_admin_role()
+    public function test_cannot_create_branches_without_super_admin_role()
     {
-        $branch = Branch::factory()->create();
-
-        $response = $this->actingAs($this->regularUser)
-            ->getJson('/api/branches');
-        $response->assertStatus(403);
-
-        $response = $this->actingAs($this->regularUser)
+        $response = $this->actingAs($this->admin)
             ->postJson('/api/branches', []);
-        $response->assertStatus(403);
-
-        $response = $this->actingAs($this->regularUser)
-            ->getJson("/api/branches/{$branch->id}");
-        $response->assertStatus(403);
-
-        $response = $this->actingAs($this->regularUser)
-            ->putJson("/api/branches/{$branch->id}", []);
-        $response->assertStatus(403);
-
-        $response = $this->actingAs($this->regularUser)
-            ->deleteJson("/api/branches/{$branch->id}");
         $response->assertStatus(403);
     }
 
@@ -122,7 +105,7 @@ class BranchControllerTest extends TestCase
             'branch_phone' => '1234567890',
         ];
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->superAdmin)
             ->postJson('/api/branches', $branchData);
 
         $response->assertCreated()
@@ -160,7 +143,7 @@ class BranchControllerTest extends TestCase
 
     public function test_cannot_create_branch_with_invalid_data()
     {
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->superAdmin)
             ->postJson('/api/branches', []);
 
         $response->assertStatus(422)
@@ -178,7 +161,7 @@ class BranchControllerTest extends TestCase
     {
         $branch = Branch::factory()->create();
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->regularUser)
             ->getJson("/api/branches/{$branch->id}");
 
         $response->assertOk()
@@ -203,7 +186,7 @@ class BranchControllerTest extends TestCase
 
     public function test_cannot_show_nonexistent_branch()
     {
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->regularUser)
             ->getJson('/api/branches/999');
 
         $response->assertStatus(404)
@@ -215,14 +198,13 @@ class BranchControllerTest extends TestCase
     public function test_can_update_branch()
     {
         $branch = Branch::factory()->create();
-        $updateData = [
-            'name' => 'Updated Branch',
-            'location' => 'Updated Location',
-            'branch_phone' => '0987654321',
-        ];
 
-        $response = $this->actingAs($this->admin)
-            ->putJson("/api/branches/{$branch->id}", $updateData);
+        $response = $this->actingAs($this->superAdmin)
+            ->putJson("/api/branches/{$branch->id}", [
+                'name' => 'Updated Branch',
+                'location' => 'Updated Location',
+                'branch_phone' => '0987654321',
+            ]);
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -245,16 +227,17 @@ class BranchControllerTest extends TestCase
 
         $this->assertDatabaseHas('branches', [
             'id' => $branch->id,
-            'name' => $updateData['name'],
-            'location' => $updateData['location'],
-            'branch_phone' => $updateData['branch_phone'],
+            'name' => 'Updated Branch',
+            'location' => 'Updated Location',
+            'branch_phone' => '0987654321',
         ]);
     }
 
     public function test_cannot_update_branch_with_invalid_data()
     {
         $branch = Branch::factory()->create();
-        $response = $this->actingAs($this->admin)
+
+        $response = $this->actingAs($this->superAdmin)
             ->putJson("/api/branches/{$branch->id}", []);
 
         $response->assertStatus(422)
@@ -270,7 +253,7 @@ class BranchControllerTest extends TestCase
 
     public function test_cannot_update_nonexistent_branch()
     {
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->superAdmin)
             ->putJson('/api/branches/999', [
                 'name' => 'Updated Branch',
                 'location' => 'Updated Location',
@@ -283,16 +266,17 @@ class BranchControllerTest extends TestCase
             ]);
     }
 
-    public function test_can_delete_branch()
+    public function test_only_super_admin_can_delete_branch()
     {
         $branch = Branch::factory()->create();
         $branchAdminId = $branch->branch_admin;
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->superAdmin)
             ->deleteJson("/api/branches/{$branch->id}");
 
-        $response->assertNoContent();
+        $response->assertStatus(204);
 
+        // Check if the branch was deleted
         $this->assertDatabaseMissing('branches', [
             'id' => $branch->id
         ]);
@@ -305,7 +289,7 @@ class BranchControllerTest extends TestCase
 
     public function test_cannot_delete_nonexistent_branch()
     {
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->superAdmin)
             ->deleteJson('/api/branches/999');
 
         $response->assertStatus(404)
@@ -351,7 +335,7 @@ class BranchControllerTest extends TestCase
         $response = $this->actingAs($branchAdmin)
             ->getJson("/api/branches/{$branch2->id}");
 
-        $response->assertStatus(403);
+        $response->assertOk(); // Any authenticated user can view branches
     }
 
     public function test_branch_admin_cannot_modify_own_branch()

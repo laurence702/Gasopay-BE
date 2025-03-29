@@ -24,9 +24,17 @@ class CheckRole
             ], 401);
         }
 
-        if (!$request->user()->hasRole($role)) {
+        $roleEnum = match (str_replace('-', '_', strtolower($role))) {
+            'admin' => RoleEnum::Admin,
+            'rider' => RoleEnum::Rider,
+            'regular' => RoleEnum::Regular,
+            'super_admin' => RoleEnum::SuperAdmin,
+            default => null,
+        };
+
+        if (!$roleEnum || $request->user()->role !== $roleEnum) {
             return response()->json([
-                'message' => 'Unauthorized. You need ' . $role . ' role to access this resource.'
+                'message' => 'Unauthorized. You need ' . str_replace('_', ' ', $role) . ' role to access this resource.'
             ], 403);
         }
 
