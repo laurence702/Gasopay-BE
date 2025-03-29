@@ -78,7 +78,7 @@ class User extends Authenticatable
         }
 
         // Convert the role string to enum case
-        $roleEnum = RoleEnum::tryFrom(strtolower($role));
+        $roleEnum = RoleEnum::tryFrom($role);
         if (!$roleEnum) {
             return false;
         }

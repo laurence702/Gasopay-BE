@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\VehicleTypeController;
 use App\Http\Controllers\Api\RiderController;
 use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
+use App\Models\Branch;
+use App\Enums\RoleEnum;
+use App\Http\Middleware\CheckRole;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,13 +27,10 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
-Route::get('/me', [AuthController::class, 'loggedInUser'])->name('user');
+Route::get('/me', [AuthController::class, 'loggedInUser'])->middleware('auth:sanctum')->name('user');
 
 // Protected routes
 Route::middleware(['auth:sanctum'])->group(function () {
-    // User routes
-    Route::get('/users', [UserController::class, 'index'])->name('users.index');
-    Route::post('/users', [UserController::class, 'store'])->name('users.store');
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
@@ -52,27 +52,38 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Vehicle Type routes
     Route::get('/vehicle-types', [VehicleTypeController::class, 'index'])->name('vehicle-types.index');
-    Route::post('/vehicle-types', [VehicleTypeController::class, 'store'])->name('vehicle-types.store');
     Route::get('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'show'])->name('vehicle-types.show');
-    Route::put('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'update'])->name('vehicle-types.update');
-    Route::delete('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'destroy'])->name('vehicle-types.destroy');
 
     // Admin routes
-    Route::middleware(['role:admin'])->group(function () {
+    Route::middleware([CheckRole::class . ':' . RoleEnum::Admin->value])->group(function () {
+        //Admin create rider Profile
+        Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.registerRider');
+        //create Branch Admin
+        Route::post('/create-admin', [UserController::class, 'create_admin'])->name('users.createAdmin');
+        //get all users 
+        Route::get('/users', [UserController::class, 'allUsers'])->name('users.showAll');
+
         Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
         Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
-        Route::get('/branches/{branch}', [BranchController::class, 'show'])->name('branches.show');
-        Route::put('/branches/{branch}', [BranchController::class, 'update'])->name('branches.update');
-        Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])->name('branches.destroy');
+        Route::get('/branches/{branch}', [BranchController::class, 'show'])
+            ->missing(function () {
+                return response()->json(['message' => 'Branch not found.'], 404);
+            });
+        Route::put('/branches/{branch}', [BranchController::class, 'update'])
+            ->missing(function () {
+                return response()->json(['message' => 'Branch not found.'], 404);
+            });
+        Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])
+            ->missing(function () {
+                return response()->json(['message' => 'Branch not found.'], 404);
+            });
+        Route::post('/vehicle-types', [VehicleTypeController::class, 'store'])->name('vehicle-types.store');
+        Route::put('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'update'])->name('vehicle-types.update');
+        Route::delete('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'destroy'])->name('vehicle-types.destroy');
     });
-    
-    // Rider routes
-    Route::middleware(['role:rider'])->prefix('rider')->group(function () {
+
+    Route::middleware([CheckRole::class . ':' . RoleEnum::Rider->value])->prefix('rider')->group(function () {
         // Add rider specific routes here
     });
     
-    // Regular user routes
-    Route::middleware(['role:regular'])->prefix('user')->group(function () {
-        // Add regular user specific routes here
-    });
 });

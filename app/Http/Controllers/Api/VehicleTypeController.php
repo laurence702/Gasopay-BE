@@ -11,9 +11,14 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class VehicleTypeController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $vehicleTypes = VehicleType::all();
+        $vehicleTypes = VehicleType::query()
+            ->when($request->search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%");
+            })
+            ->paginate();
+
         return VehicleTypeResource::collection($vehicleTypes);
     }
 

@@ -40,6 +40,7 @@ test('authenticated user can list users', function () {
 });
 
 test('authenticated user can create a user', function () {
+    User::query()->delete();
     $user = User::factory()->create(['role' => RoleEnum::Admin]);
     Sanctum::actingAs($user);
     $branch = Branch::factory()->create();
@@ -50,11 +51,10 @@ test('authenticated user can create a user', function () {
         'phone' => '1234567890',
         'password' => 'password123',
         'password_confirmation' => 'password123',
-        'role' => RoleEnum::Regular->value,
-        'branch_id' => $branch->id
+        'role' => RoleEnum::Rider->value,
     ];
 
-    $response = postJson('/api/users', $userData);
+    $response = postJson('/api/register-rider', $userData);
 
     $response->assertStatus(201)
         ->assertJsonStructure([
@@ -163,16 +163,6 @@ test('unauthenticated user cannot access user endpoints', function () {
     foreach ($responses as $response) {
         $response->assertStatus(401);
     }
-});
-
-test('validation works when creating user', function () {
-    $user = User::factory()->create(['role' => RoleEnum::Admin]);
-    Sanctum::actingAs($user);
-
-    $response = postJson('/api/users', []);
-
-    $response->assertStatus(422)
-        ->assertJsonValidationErrors(['fullname', 'email', 'password', 'role']);
 });
 
 test('users can be searched', function () {

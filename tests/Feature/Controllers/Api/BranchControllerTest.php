@@ -2,11 +2,14 @@
 
 namespace Tests\Feature\Controllers\Api;
 
-use App\Models\Branch;
-use App\Models\User;
-use App\Enums\RoleEnum;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use App\Models\User;
+use App\Models\Branch;
+use App\Models\UserProfile;
+use App\Enums\RoleEnum;
+use Illuminate\Http\Response;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 
 class BranchControllerTest extends TestCase
 {
@@ -42,6 +45,8 @@ class BranchControllerTest extends TestCase
 
     public function test_cannot_access_branches_without_admin_role()
     {
+        $branch = Branch::factory()->create();
+
         $response = $this->actingAs($this->regularUser)
             ->getJson('/api/branches');
         $response->assertStatus(403);
@@ -51,15 +56,15 @@ class BranchControllerTest extends TestCase
         $response->assertStatus(403);
 
         $response = $this->actingAs($this->regularUser)
-            ->getJson('/api/branches/1');
+            ->getJson("/api/branches/{$branch->id}");
         $response->assertStatus(403);
 
         $response = $this->actingAs($this->regularUser)
-            ->putJson('/api/branches/1', []);
+            ->putJson("/api/branches/{$branch->id}", []);
         $response->assertStatus(403);
 
         $response = $this->actingAs($this->regularUser)
-            ->deleteJson('/api/branches/1');
+            ->deleteJson("/api/branches/{$branch->id}");
         $response->assertStatus(403);
     }
 
@@ -78,6 +83,13 @@ class BranchControllerTest extends TestCase
                         'name',
                         'location',
                         'branch_phone',
+                        'branch_admin' => [
+                            'id',
+                            'fullname',
+                            'email',
+                            'phone',
+                            'role',
+                        ],
                         'created_at',
                         'updated_at'
                     ]
@@ -114,11 +126,36 @@ class BranchControllerTest extends TestCase
             ->postJson('/api/branches', $branchData);
 
         $response->assertCreated()
-            ->assertJson([
-                'data' => $branchData
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'name',
+                    'location',
+                    'branch_phone',
+                    'branch_admin' => [
+                        'id',
+                        'fullname',
+                        'email',
+                        'phone',
+                        'role',
+                    ],
+                    'created_at',
+                    'updated_at'
+                ]
             ]);
 
-        $this->assertDatabaseHas('branches', $branchData);
+        $this->assertDatabaseHas('branches', [
+            'name' => $branchData['name'],
+            'location' => $branchData['location'],
+            'branch_phone' => $branchData['branch_phone'],
+        ]);
+
+        // Check if a branch admin user was created
+        $this->assertDatabaseHas('users', [
+            'role' => RoleEnum::Admin,
+            'fullname' => $branchData['name'] . ' Admin',
+            'phone' => $branchData['branch_phone'],
+        ]);
     }
 
     public function test_cannot_create_branch_with_invalid_data()
@@ -145,12 +182,21 @@ class BranchControllerTest extends TestCase
             ->getJson("/api/branches/{$branch->id}");
 
         $response->assertOk()
-            ->assertJson([
+            ->assertJsonStructure([
                 'data' => [
-                    'id' => $branch->id,
-                    'name' => $branch->name,
-                    'location' => $branch->location,
-                    'branch_phone' => $branch->branch_phone,
+                    'id',
+                    'name',
+                    'location',
+                    'branch_phone',
+                    'branch_admin' => [
+                        'id',
+                        'fullname',
+                        'email',
+                        'phone',
+                        'role',
+                    ],
+                    'created_at',
+                    'updated_at'
                 ]
             ]);
     }
@@ -179,11 +225,30 @@ class BranchControllerTest extends TestCase
             ->putJson("/api/branches/{$branch->id}", $updateData);
 
         $response->assertOk()
-            ->assertJson([
-                'data' => $updateData
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'name',
+                    'location',
+                    'branch_phone',
+                    'branch_admin' => [
+                        'id',
+                        'fullname',
+                        'email',
+                        'phone',
+                        'role',
+                    ],
+                    'created_at',
+                    'updated_at'
+                ]
             ]);
 
-        $this->assertDatabaseHas('branches', $updateData);
+        $this->assertDatabaseHas('branches', [
+            'id' => $branch->id,
+            'name' => $updateData['name'],
+            'location' => $updateData['location'],
+            'branch_phone' => $updateData['branch_phone'],
+        ]);
     }
 
     public function test_cannot_update_branch_with_invalid_data()
@@ -221,6 +286,7 @@ class BranchControllerTest extends TestCase
     public function test_can_delete_branch()
     {
         $branch = Branch::factory()->create();
+        $branchAdminId = $branch->branch_admin;
 
         $response = $this->actingAs($this->admin)
             ->deleteJson("/api/branches/{$branch->id}");
@@ -229,6 +295,11 @@ class BranchControllerTest extends TestCase
 
         $this->assertDatabaseMissing('branches', [
             'id' => $branch->id
+        ]);
+
+        // Check if the branch admin user was also deleted
+        $this->assertDatabaseMissing('users', [
+            'id' => $branchAdminId
         ]);
     }
 
@@ -241,5 +312,71 @@ class BranchControllerTest extends TestCase
             ->assertJson([
                 'message' => 'Branch not found.'
             ]);
+    }
+
+    public function test_branch_admin_can_access_own_branch()
+    {
+        $branch = Branch::factory()->create();
+        $branchAdmin = User::find($branch->branch_admin);
+
+        $response = $this->actingAs($branchAdmin)
+            ->getJson("/api/branches/{$branch->id}");
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'name',
+                    'location',
+                    'branch_phone',
+                    'branch_admin' => [
+                        'id',
+                        'fullname',
+                        'email',
+                        'phone',
+                        'role',
+                    ],
+                    'created_at',
+                    'updated_at'
+                ]
+            ]);
+    }
+
+    public function test_branch_admin_cannot_access_other_branches()
+    {
+        $branch1 = Branch::factory()->create();
+        $branch2 = Branch::factory()->create();
+        $branchAdmin = User::find($branch1->branch_admin);
+
+        $response = $this->actingAs($branchAdmin)
+            ->getJson("/api/branches/{$branch2->id}");
+
+        $response->assertStatus(403);
+    }
+
+    public function test_branch_admin_cannot_modify_own_branch()
+    {
+        $branch = Branch::factory()->create();
+        $branchAdmin = User::find($branch->branch_admin);
+
+        $response = $this->actingAs($branchAdmin)
+            ->putJson("/api/branches/{$branch->id}", [
+                'name' => 'Updated Branch',
+                'location' => 'Updated Location',
+                'branch_phone' => '0987654321',
+            ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_branch_admin_cannot_delete_own_branch()
+    {
+        $branch = Branch::factory()->create();
+        $branchAdmin = User::find($branch->branch_admin);
+
+        $response = $this->actingAs($branchAdmin)
+            ->deleteJson("/api/branches/{$branch->id}");
+
+        $response->assertStatus(403);
     }
 } 

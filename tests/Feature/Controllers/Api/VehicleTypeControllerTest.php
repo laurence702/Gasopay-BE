@@ -41,7 +41,52 @@ class VehicleTypeControllerTest extends TestCase
                         'updated_at',
                     ],
                 ],
+                'links' => [
+                    'first',
+                    'last',
+                    'prev',
+                    'next',
+                ],
+                'meta' => [
+                    'current_page',
+                    'from',
+                    'last_page',
+                    'path',
+                    'per_page',
+                    'to',
+                    'total',
+                ],
             ]);
+    }
+
+    public function test_can_list_vehicle_types_with_pagination(): void
+    {
+        VehicleType::factory()->count(15)->create();
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/vehicle-types');
+
+        $response->assertOk()
+            ->assertJsonCount(10, 'data') // Default pagination is 10
+            ->assertJsonStructure([
+                'data',
+                'links',
+                'meta',
+            ]);
+    }
+
+    public function test_can_search_vehicle_types(): void
+    {
+        VehicleType::create(['name' => 'Car']);
+        VehicleType::create(['name' => 'Motorcycle']);
+        VehicleType::create(['name' => 'Van']);
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/vehicle-types?search=car');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', 'Car');
     }
 
     public function test_can_create_vehicle_type(): void

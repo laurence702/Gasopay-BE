@@ -61,7 +61,6 @@ class AuthController extends Controller
 
     public function loggedInUser(Request $request)
     {
-        $token = $request->bearerToken();
         return response()->json([
             'user' => $request->user()
         ]);
