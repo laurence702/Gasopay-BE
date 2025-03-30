@@ -21,12 +21,13 @@ class UserController extends Controller
     {
         $users = User::query()
             ->when($request->search, function ($query, $search) {
-                $query->where('fullname', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhere('role', 'like', "%{$search}%");
+                $query->where(function ($q) use ($search) {
+                    $q->where('fullname', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
             })
-            ->paginate();
+            ->paginate(10);
 
         return new UserCollection($users);
     }
@@ -44,6 +45,7 @@ class UserController extends Controller
     public function register_rider(StoreUserRequest $request): UserResource
     {
         $validated = $request->validated();
+        unset($validated['role']); //protection against role manipulation
         $validated['password'] = Hash::make($validated['password']);
         $validated['role'] = RoleEnum::Rider;
 

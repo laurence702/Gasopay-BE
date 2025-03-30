@@ -31,9 +31,11 @@ Route::get('/me', [AuthController::class, 'loggedInUser'])->middleware('auth:san
 
 // Protected routes
 Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
 
     // Product routes
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
@@ -60,6 +62,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 // Super Admin routes
 Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
+    Route::post('/create-admin', [UserController::class, 'createAdmin'])->name('user.createAdmin');
     // Branch management routes
     Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
     Route::put('/branches/{branch}', [BranchController::class, 'update'])

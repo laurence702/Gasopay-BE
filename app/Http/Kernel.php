@@ -70,6 +70,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'json.response' => \App\Http\Middleware\ForceJsonResponse::class,
-        'role' => \App\Http\Middleware\CheckRole::class,
+        'superAdmin' => \App\Http\Middleware\SuperAdmin::class,
+        'branchAdmin' => \App\Http\Middleware\BranchAdmin::class,
     ];
 }

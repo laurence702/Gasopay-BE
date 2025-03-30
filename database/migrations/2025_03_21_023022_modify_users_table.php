@@ -26,6 +26,7 @@ return new class extends Migration
             $table->enum('role', ['admin', 'rider', 'regular', 'super_admin'])->after('phone');
             $table->foreignId('branch_id')->nullable()->after('role')->constrained()->nullOnDelete();
             $table->dropColumn('name');
+            $table->boolean('profile_verified')->default(false);
         });
     }
 
