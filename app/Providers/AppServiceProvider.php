@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Http\Middleware\CheckRole;
 
 class AppServiceProvider extends ServiceProvider
 {

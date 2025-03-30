@@ -8,9 +8,6 @@ use App\Http\Controllers\Api\VehicleTypeController;
 use App\Http\Controllers\Api\RiderController;
 use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
-use App\Models\Branch;
-use App\Enums\RoleEnum;
-use App\Http\Middleware\CheckRole;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,8 +58,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 // Super Admin routes
-Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
-    Route::post('/create-admin', [UserController::class, 'createAdmin'])->name('user.createAdmin');
+Route::middleware(['auth:sanctum', 'super-admin'])->group(function () {
+    Route::post('/create-admin', [UserController::class, 'createAdmin'])->name('users.createAdmin');
     // Branch management routes
     Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
     Route::put('/branches/{branch}', [BranchController::class, 'update'])
@@ -83,8 +80,4 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
     Route::post('/vehicle-types', [VehicleTypeController::class, 'store'])->name('vehicle-types.store');
     Route::put('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'update'])->name('vehicle-types.update');
     Route::delete('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'destroy'])->name('vehicle-types.destroy');
-});
-
-Route::middleware(['auth:sanctum', 'role:rider'])->prefix('rider')->group(function () {
-    // Add rider specific routes here
 });
