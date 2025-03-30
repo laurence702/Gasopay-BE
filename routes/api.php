@@ -58,7 +58,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 // Super Admin routes
-Route::middleware(['auth:sanctum', 'super-admin'])->group(function () {
+Route::middleware(['auth:sanctum', \App\Http\Middleware\SuperAdmin::class])->group(function () {
     Route::post('/create-admin', [UserController::class, 'createAdmin'])->name('users.createAdmin');
     // Branch management routes
     Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');

@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('branches', function (Blueprint $table) {
@@ -17,7 +14,7 @@ return new class extends Migration
             $table->string('location');
             $table->foreignId('branch_admin')->constrained('users')->cascadeOnDelete();
             $table->string('branch_phone')->nullable();
-        $table->timestamps();
+            $table->timestamps();
     });
 
         Schema::table('users', function (Blueprint $table) {
