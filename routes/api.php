@@ -1,13 +1,16 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\RiderController;
 use App\Http\Controllers\Api\BranchController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\PaymentProofController;
+use App\Http\Controllers\PaymentHistoryController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\VehicleTypeController;
-use App\Http\Controllers\Api\RiderController;
-use App\Http\Controllers\Api\AuthController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\OrderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -55,6 +58,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         ->missing(function () {
             return response()->json(['message' => 'Branch not found.'], 404);
         });
+
+    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
 });
 
 // Super Admin routes
@@ -80,4 +86,17 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SuperAdmin::class])->gro
     Route::post('/vehicle-types', [VehicleTypeController::class, 'store'])->name('vehicle-types.store');
     Route::put('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'update'])->name('vehicle-types.update');
     Route::delete('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'destroy'])->name('vehicle-types.destroy');
+
+    //Payment routes
+    Route::apiResource('payment-histories', PaymentHistoryController::class);
+    Route::post('payment-histories/{paymentHistory}/mark-cash', [PaymentHistoryController::class, 'markCashPayment']);
+
+    Route::post('payment-histories/{paymentHistory}/proof', [PaymentProofController::class, 'submit']);
+    Route::post('payment-proofs/{paymentProof}/approve', [PaymentProofController::class, 'approve']);
+    Route::post('payment-proofs/{paymentProof}/reject', [PaymentProofController::class, 'reject']);
+
+    // Order management routes
+    Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+    Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
+    Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
 });

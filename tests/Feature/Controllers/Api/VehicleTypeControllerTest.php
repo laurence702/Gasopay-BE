@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Controllers\Api;
 
-use App\Models\User;
-use App\Models\VehicleType;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use App\Models\User;
+use App\Enums\RoleEnum;
+use App\Models\VehicleType;
+use Laravel\Sanctum\Sanctum;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class VehicleTypeControllerTest extends TestCase
 {
@@ -89,19 +91,19 @@ class VehicleTypeControllerTest extends TestCase
             ->assertJsonPath('data.0.name', 'Car');
     }
 
-    public function test_can_create_vehicle_type(): void
+    public function test_super_admin_can_create_vehicle_type(): void
     {
-        $response = $this->actingAs($this->user)
-            ->postJson('/api/vehicle-types', $this->vehicleTypeData);
+        $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
+        Sanctum::actingAs($superAdmin);
+        
+        $response = $this->postJson('/api/vehicle-types', $this->vehicleTypeData);
 
         $response->assertCreated()
             ->assertJsonStructure([
-                'data' => [
-                    'id',
-                    'name',
-                    'created_at',
-                    'updated_at',
-                ],
+                'id',
+                'name',
+                'created_at',
+                'updated_at',
             ]);
 
         $this->assertDatabaseHas('vehicle_types', $this->vehicleTypeData);
@@ -109,9 +111,10 @@ class VehicleTypeControllerTest extends TestCase
 
     public function test_cannot_create_duplicate_vehicle_type(): void
     {
+        $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
         VehicleType::create($this->vehicleTypeData);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($superAdmin)
             ->postJson('/api/vehicle-types', $this->vehicleTypeData);
 
         $response->assertUnprocessable()
@@ -127,34 +130,31 @@ class VehicleTypeControllerTest extends TestCase
 
         $response->assertOk()
             ->assertJsonStructure([
-                'data' => [
-                    'id',
-                    'name',
-                    'created_at',
-                    'updated_at',
-                ],
+                'id',
+                'name',
+                'created_at',
+                'updated_at',
             ]);
     }
 
     public function test_can_update_vehicle_type(): void
     {
+        $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
         $vehicleType = VehicleType::create($this->vehicleTypeData);
 
         $updatedData = [
             'name' => 'Car',
         ];
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($superAdmin)
             ->putJson("/api/vehicle-types/{$vehicleType->id}", $updatedData);
 
         $response->assertOk()
             ->assertJsonStructure([
-                'data' => [
-                    'id',
-                    'name',
-                    'created_at',
-                    'updated_at',
-                ],
+                'id',
+                'name',
+                'created_at',
+                'updated_at',
             ]);
 
         $this->assertDatabaseHas('vehicle_types', $updatedData);
@@ -162,9 +162,10 @@ class VehicleTypeControllerTest extends TestCase
 
     public function test_can_delete_vehicle_type(): void
     {
+        $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
         $vehicleType = VehicleType::create($this->vehicleTypeData);
 
-        $response = $this->actingAs($this->user)
+        $response = $this->actingAs($superAdmin)
             ->deleteJson("/api/vehicle-types/{$vehicleType->id}");
 
         $response->assertNoContent();

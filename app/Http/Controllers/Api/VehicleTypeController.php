@@ -41,9 +41,9 @@ class VehicleTypeController extends Controller
         }
     }
 
-    public function show(VehicleType $vehicleType): VehicleTypeResource
+    public function show(VehicleType $vehicleType): JsonResponse
     {
-        return new VehicleTypeResource($vehicleType);
+        return response()->json(new VehicleTypeResource($vehicleType));
     }
 
     public function update(Request $request, VehicleType $vehicleType): JsonResponse

@@ -9,13 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->uuid('profile_id')->nullable()->comment('for rider and non-admin users only');
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
@@ -32,6 +34,15 @@ return new class extends Migration
             $table->longText('payload');
             $table->integer('last_activity')->index();
         });
+
+        Schema::create('branches', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->nullable();
+            $table->string('location');
+            $table->uuid('branch_admin')->constrained('users')->cascadeOnDelete();
+            $table->string('branch_phone')->nullable();
+            $table->timestamps();
+        });
     }
 
     public function down(): void
@@ -39,5 +50,6 @@ return new class extends Migration
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('branches');
     }
 };

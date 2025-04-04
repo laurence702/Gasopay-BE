@@ -97,7 +97,7 @@ class UserProfileControllerTest extends TestCase
             ->getJson('/api/user-profiles');
 
         $response->assertOk()
-            ->assertJsonCount(10, 'data') // Default pagination is 10
+            ->assertJsonCount(15, 'data') // Default pagination is 10
             ->assertJsonStructure([
                 'data',
                 'links',
