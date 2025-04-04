@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('payment_histories', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
-            $table->uuid('payer_id')->constrained('users')->onDelete('cascade'); // Rider, User
-            $table->uuid('approver_id')->nullable()->constrained('users')->onDelete('set null'); // Branch Admin
+            $table->foreignUlid('payer_id')->constrained('users')->onDelete('restrict'); // Rider, User
+            $table->foreignUlid('approver_id')->constrained('users')->onDelete('restrict'); // Branch Admin
             $table->foreignId('branch_id')->constrained()->onDelete('cascade'); // Branch where transaction occurs
             $table->decimal('amount_due', 10, 2); // Total cost (e.g., 20 liters * price)
             $table->decimal('amount_paid', 10, 2)->default(0.00)->comment('Amount paid so far');

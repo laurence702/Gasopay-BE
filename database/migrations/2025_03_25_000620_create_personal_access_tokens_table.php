@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('personal_access_tokens', function (Blueprint $table) {
             $table->id();
-            $table->uuid('tokenable_id'); // Change from bigInteger to uuid
+            $table->ulid('tokenable_id');
             $table->string('tokenable_type');
             $table->string('name');
             $table->string('token', 64)->unique();

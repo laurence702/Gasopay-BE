@@ -16,7 +16,7 @@ return new class extends Migration
 
         Schema::create('user_profiles', function (Blueprint $table) {
             $table->id();
-            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete()->comment('e.g rider');
+            $table->foreignUlid('user_id')->constrained('users')->cascadeOnDelete()->comment('e.g rider');
             $table->unsignedMediumInteger('vehicle_type_id')->nullable();
             $table->string('phone');
             $table->text('address');
@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('guarantors_name')->nullable();
             $table->string('photo')->nullable();
             $table->string('barcode')->nullable();
+            $table->ipAddress('ip_address')->nullable();
             $table->timestamps();
 
             $table->foreign('vehicle_type_id')

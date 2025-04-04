@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('proof_url');
             $table->decimal('amount', 10, 2);
             $table->string('status')->default('pending');
-            $table->uuid('approved_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignUlid('approver_id')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('approved_at')->nullable();
             $table->timestamps();
         
