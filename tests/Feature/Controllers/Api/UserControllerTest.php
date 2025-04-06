@@ -95,12 +95,15 @@ test('branch admin can register a rider', function () {
 });
 
 test('Admin can view a specific user', function () {
-    $user = User::factory()->create(['role' => RoleEnum::Admin]);
-    Sanctum::actingAs($user);
+    $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+    Sanctum::actingAs($admin);
 
     $targetUser = User::factory()->create();
 
-    $response = getJson("/api/users/{$targetUser->id}");
+    $response = getJson("/api/users/{$targetUser->id}", [
+        'Accept' => 'application/json',
+        'Authorization' => 'Bearer ' . $admin->createToken('test-token')->plainTextToken
+    ]);
 
     $response->assertOk()
         ->assertJsonStructure([
@@ -120,8 +123,8 @@ test('Admin can view a specific user', function () {
 });
 
 test('authenticated user can update a user', function () {
-    $user = User::factory()->create(['role' => RoleEnum::Admin]);
-    Sanctum::actingAs($user);
+    $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+    Sanctum::actingAs($admin);
 
     $targetUser = User::factory()->create();
     $branch = Branch::factory()->create();
@@ -134,7 +137,10 @@ test('authenticated user can update a user', function () {
         'branch_id' => $branch->id
     ];
 
-    $response = putJson("/api/users/{$targetUser->id}", $updateData);
+    $response = putJson("/api/users/{$targetUser->id}", $updateData, [
+        'Accept' => 'application/json',
+        'Authorization' => 'Bearer ' . $admin->createToken('test-token')->plainTextToken
+    ]);
 
     $response->assertOk()
         ->assertJsonStructure([
@@ -157,12 +163,15 @@ test('authenticated user can update a user', function () {
 });
 
 test('authenticated user can delete a user', function () {
-    $user = User::factory()->create(['role' => RoleEnum::Admin]);
-    Sanctum::actingAs($user);
+    $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+    Sanctum::actingAs($admin);
 
     $targetUser = User::factory()->create();
 
-    $response = deleteJson("/api/users/{$targetUser->id}");
+    $response = deleteJson("/api/users/{$targetUser->id}", [], [
+        'Accept' => 'application/json',
+        'Authorization' => 'Bearer ' . $admin->createToken('test-token')->plainTextToken
+    ]);
 
     $response->assertOk()
         ->assertJson([

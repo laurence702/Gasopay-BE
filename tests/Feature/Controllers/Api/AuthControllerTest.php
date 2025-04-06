@@ -6,7 +6,6 @@ use Laravel\Sanctum\Sanctum;
 use function Pest\Laravel\{postJson, getJson};
 
 beforeEach(function () {
-    // Clear database
     User::query()->delete();
 });
 
