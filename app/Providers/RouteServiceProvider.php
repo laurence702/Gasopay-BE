@@ -24,6 +24,10 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Route::bind('user', function ($value) {
+            return \App\Models\User::where('id', $value)->firstOrFail();
+        });
+
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });

@@ -8,40 +8,60 @@ use App\Models\VehicleType;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Validation\ValidationException;
 
 class VehicleTypeController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        $vehicleTypes = VehicleType::all();
+        $vehicleTypes = VehicleType::query()
+            ->when($request->search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%");
+            })
+            ->paginate(10);
+
         return VehicleTypeResource::collection($vehicleTypes);
     }
 
-    public function store(Request $request): VehicleTypeResource
+    public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|unique:vehicle_types,name',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|unique:vehicle_types,name',
+            ]);
 
-        $vehicleType = VehicleType::create($validated);
+            $vehicleType = VehicleType::create($validated);
 
-        return new VehicleTypeResource($vehicleType);
+            return response()->json(new VehicleTypeResource($vehicleType), 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => $e->errors(),
+            ], 422);
+        }
     }
 
-    public function show(VehicleType $vehicleType): VehicleTypeResource
+    public function show(VehicleType $vehicleType): JsonResponse
     {
-        return new VehicleTypeResource($vehicleType);
+        return response()->json(new VehicleTypeResource($vehicleType));
     }
 
-    public function update(Request $request, VehicleType $vehicleType): VehicleTypeResource
+    public function update(Request $request, VehicleType $vehicleType): JsonResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|unique:vehicle_types,name,' . $vehicleType->id,
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|unique:vehicle_types,name,' . $vehicleType->id,
+            ]);
 
-        $vehicleType->update($validated);
+            $vehicleType->update($validated);
 
-        return new VehicleTypeResource($vehicleType);
+            return response()->json(new VehicleTypeResource($vehicleType));
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => $e->errors(),
+            ], 422);
+        }
     }
 
     public function destroy(VehicleType $vehicleType): JsonResponse

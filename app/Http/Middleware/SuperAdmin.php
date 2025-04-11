@@ -6,17 +6,16 @@ use Closure;
 use Illuminate\Http\Request;
 use App\Enums\RoleEnum;
 
-class CheckRole
+class SuperAdmin
 {
     /**
      * Handle an incoming request.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \Closure  $next
-     * @param  string  $role
      * @return mixed
      */
-    public function handle(Request $request, Closure $next, string $role)
+    public function handle(Request $request, Closure $next)
     {
         if (!$request->user()) {
             return response()->json([
@@ -24,12 +23,12 @@ class CheckRole
             ], 401);
         }
 
-        if (!$request->user()->hasRole($role)) {
+        if ($request->user()->role !== RoleEnum::SuperAdmin) {
             return response()->json([
-                'message' => 'Unauthorized. You need ' . $role . ' role to access this resource.'
+                'message' => 'Unauthorized. You need super admin role to access this resource.'
             ], 403);
         }
 
         return $next($request);
     }
-}
+} 

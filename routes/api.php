@@ -1,13 +1,15 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\BranchController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\PaymentProofController;
+use App\Http\Controllers\PaymentHistoryController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\VehicleTypeController;
-use App\Http\Controllers\Api\RiderController;
-use App\Http\Controllers\Api\AuthController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\OrderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,24 +26,19 @@ use Illuminate\Support\Facades\Route;
 Route::post('/register', [AuthController::class, 'register'])->name('register');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
-Route::get('/me', [AuthController::class, 'loggedInUser'])->name('user');
+Route::get('/me', [AuthController::class, 'loggedInUser'])->middleware('auth:sanctum')->name('user');
 
 // Protected routes
 Route::middleware(['auth:sanctum'])->group(function () {
-    // User routes
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
-    Route::post('/users', [UserController::class, 'store'])->name('users.store');
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
 
     // Product routes
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
     Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
-    Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
-    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
-
 
     // User Profile routes
     Route::get('/user-profiles', [UserProfileController::class, 'index'])->name('user-profiles.index');
@@ -52,27 +49,53 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Vehicle Type routes
     Route::get('/vehicle-types', [VehicleTypeController::class, 'index'])->name('vehicle-types.index');
-    Route::post('/vehicle-types', [VehicleTypeController::class, 'store'])->name('vehicle-types.store');
     Route::get('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'show'])->name('vehicle-types.show');
+
+    // Branch routes - accessible to all authenticated users
+    Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
+    Route::get('/branches/{branch}', [BranchController::class, 'show'])
+        ->missing(function () {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        });
+
+    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+});
+
+// Super Admin routes
+Route::middleware(['auth:sanctum', \App\Http\Middleware\SuperAdmin::class])->group(function () {
+    Route::post('/create-admin', [UserController::class, 'createAdmin'])->name('users.createAdmin');
+    // Branch management routes
+    Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
+    Route::put('/branches/{branch}', [BranchController::class, 'update'])
+        ->missing(function () {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        });
+    Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])
+        ->missing(function () {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        });
+
+    // Product management routes
+    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+    Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+    // Vehicle Type management routes
+    Route::post('/vehicle-types', [VehicleTypeController::class, 'store'])->name('vehicle-types.store');
     Route::put('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'update'])->name('vehicle-types.update');
     Route::delete('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'destroy'])->name('vehicle-types.destroy');
 
-    // Admin routes
-    Route::middleware(['role:admin'])->group(function () {
-        Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
-        Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
-        Route::get('/branches/{branch}', [BranchController::class, 'show'])->name('branches.show');
-        Route::put('/branches/{branch}', [BranchController::class, 'update'])->name('branches.update');
-        Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])->name('branches.destroy');
-    });
-    
-    // Rider routes
-    Route::middleware(['role:rider'])->prefix('rider')->group(function () {
-        // Add rider specific routes here
-    });
-    
-    // Regular user routes
-    Route::middleware(['role:regular'])->prefix('user')->group(function () {
-        // Add regular user specific routes here
-    });
+    //Payment routes
+    Route::apiResource('payment-histories', PaymentHistoryController::class);
+    Route::post('payment-histories/{paymentHistory}/mark-cash', [PaymentHistoryController::class, 'markCashPayment']);
+
+    Route::post('payment-histories/{paymentHistory}/proof', [PaymentProofController::class, 'submit']);
+    Route::post('payment-proofs/{paymentProof}/approve', [PaymentProofController::class, 'approve']);
+    Route::post('payment-proofs/{paymentProof}/reject', [PaymentProofController::class, 'reject']);
+
+    // Order management routes
+    Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+    Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
+    Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
 });

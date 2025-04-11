@@ -48,7 +48,19 @@ class UserProfileControllerTest extends TestCase
                     '*' => [
                         'id',
                         'user_id',
+                        'user' => [
+                            'id',
+                            'fullname',
+                            'email',
+                            'phone',
+                            'role',
+                            'branch_id',
+                        ],
                         'vehicle_type_id',
+                        'vehicle_type' => [
+                            'id',
+                            'name',
+                        ],
                         'phone',
                         'address',
                         'nin',
@@ -59,6 +71,37 @@ class UserProfileControllerTest extends TestCase
                         'updated_at',
                     ],
                 ],
+                'links' => [
+                    'first',
+                    'last',
+                    'prev',
+                    'next',
+                ],
+                'meta' => [
+                    'current_page',
+                    'from',
+                    'last_page',
+                    'path',
+                    'per_page',
+                    'to',
+                    'total',
+                ],
+            ]);
+    }
+
+    public function test_can_list_user_profiles_with_pagination(): void
+    {
+        UserProfile::factory()->count(15)->create();
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/user-profiles');
+
+        $response->assertOk()
+            ->assertJsonCount(15, 'data') // Default pagination is 10
+            ->assertJsonStructure([
+                'data',
+                'links',
+                'meta',
             ]);
     }
 
@@ -72,7 +115,19 @@ class UserProfileControllerTest extends TestCase
                 'data' => [
                     'id',
                     'user_id',
+                    'user' => [
+                        'id',
+                        'fullname',
+                        'email',
+                        'phone',
+                        'role',
+                        'branch_id',
+                    ],
                     'vehicle_type_id',
+                    'vehicle_type' => [
+                        'id',
+                        'name',
+                    ],
                     'phone',
                     'address',
                     'nin',
@@ -99,7 +154,19 @@ class UserProfileControllerTest extends TestCase
                 'data' => [
                     'id',
                     'user_id',
+                    'user' => [
+                        'id',
+                        'fullname',
+                        'email',
+                        'phone',
+                        'role',
+                        'branch_id',
+                    ],
                     'vehicle_type_id',
+                    'vehicle_type' => [
+                        'id',
+                        'name',
+                    ],
                     'phone',
                     'address',
                     'nin',
@@ -129,7 +196,19 @@ class UserProfileControllerTest extends TestCase
                 'data' => [
                     'id',
                     'user_id',
+                    'user' => [
+                        'id',
+                        'fullname',
+                        'email',
+                        'phone',
+                        'role',
+                        'branch_id',
+                    ],
                     'vehicle_type_id',
+                    'vehicle_type' => [
+                        'id',
+                        'name',
+                    ],
                     'phone',
                     'address',
                     'nin',

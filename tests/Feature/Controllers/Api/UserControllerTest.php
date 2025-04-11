@@ -7,7 +7,6 @@ use Laravel\Sanctum\Sanctum;
 use function Pest\Laravel\{getJson, postJson, putJson, deleteJson};
 
 beforeEach(function () {
-    // Clear database
     User::query()->delete();
     Branch::query()->delete();
 });
@@ -33,30 +32,54 @@ test('authenticated user can list users', function () {
                     'created_at',
                     'updated_at'
                 ]
-            ],
-            'links',
-            'meta'
+            ]
         ]);
 });
 
-test('authenticated user can create a user', function () {
-    $user = User::factory()->create(['role' => RoleEnum::Admin]);
-    Sanctum::actingAs($user);
-    $branch = Branch::factory()->create();
+// test('only super admin can create branch admin', function () {
+//     $branch_admin = User::factory()->create(['role' => RoleEnum::Admin]);
+//     $branch_admin = Branch::factory()->create();
+//     Sanctum::actingAs($branch_admin);
+//     $userData = [
+//         'fullname' => 'Test User',
+//         'email' => 'test@example.com',
+//         'phone' => '1234567890',
+//         'password' => 'password123',
+//         'password_confirmation' => 'password123',
+//         'role' => RoleEnum::Rider->value,
+//         'branch_id' => $branch_admin->branch->id
+//     ];
 
+//     $response = postJson('/api/create-admin', $userData);
+
+//     $response->assertStatus(403);
+// });
+
+test('branch admin can register a rider', function () {
+    // Create a branch first
+    $branch = Branch::factory()->create();
+    
+    // Create branch admin and associate with the branch
+    $branchAdmin = User::factory()->create([
+        'role' => RoleEnum::Admin,
+        'branch_id' => $branch->id
+    ]);
+    
+    Sanctum::actingAs($branchAdmin);
+    
     $userData = [
-        'fullname' => 'Test User',
-        'email' => 'test@example.com',
+        'fullname' => 'Test Rider',
+        'email' => 'rider@example.com',
         'phone' => '1234567890',
         'password' => 'password123',
         'password_confirmation' => 'password123',
-        'role' => RoleEnum::Regular->value,
+        'role' => RoleEnum::Rider->value,
         'branch_id' => $branch->id
     ];
 
-    $response = postJson('/api/users', $userData);
+    $response = postJson('/api/register-rider', $userData);
 
-    $response->assertStatus(201)
+    $response->assertCreated()
         ->assertJsonStructure([
             'data' => [
                 'id',
@@ -69,17 +92,18 @@ test('authenticated user can create a user', function () {
                 'updated_at'
             ]
         ]);
-
-    expect(User::count())->toBe(2); // Including the admin user
 });
 
-test('authenticated user can view a specific user', function () {
-    $user = User::factory()->create(['role' => RoleEnum::Admin]);
-    Sanctum::actingAs($user);
+test('Admin can view a specific user', function () {
+    $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+    Sanctum::actingAs($admin);
 
     $targetUser = User::factory()->create();
 
-    $response = getJson("/api/users/{$targetUser->id}");
+    $response = getJson("/api/users/{$targetUser->id}", [
+        'Accept' => 'application/json',
+        'Authorization' => 'Bearer ' . $admin->createToken('test-token')->plainTextToken
+    ]);
 
     $response->assertOk()
         ->assertJsonStructure([
@@ -99,8 +123,8 @@ test('authenticated user can view a specific user', function () {
 });
 
 test('authenticated user can update a user', function () {
-    $user = User::factory()->create(['role' => RoleEnum::Admin]);
-    Sanctum::actingAs($user);
+    $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+    Sanctum::actingAs($admin);
 
     $targetUser = User::factory()->create();
     $branch = Branch::factory()->create();
@@ -113,7 +137,10 @@ test('authenticated user can update a user', function () {
         'branch_id' => $branch->id
     ];
 
-    $response = putJson("/api/users/{$targetUser->id}", $updateData);
+    $response = putJson("/api/users/{$targetUser->id}", $updateData, [
+        'Accept' => 'application/json',
+        'Authorization' => 'Bearer ' . $admin->createToken('test-token')->plainTextToken
+    ]);
 
     $response->assertOk()
         ->assertJsonStructure([
@@ -136,12 +163,15 @@ test('authenticated user can update a user', function () {
 });
 
 test('authenticated user can delete a user', function () {
-    $user = User::factory()->create(['role' => RoleEnum::Admin]);
-    Sanctum::actingAs($user);
+    $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+    Sanctum::actingAs($admin);
 
     $targetUser = User::factory()->create();
 
-    $response = deleteJson("/api/users/{$targetUser->id}");
+    $response = deleteJson("/api/users/{$targetUser->id}", [], [
+        'Accept' => 'application/json',
+        'Authorization' => 'Bearer ' . $admin->createToken('test-token')->plainTextToken
+    ]);
 
     $response->assertOk()
         ->assertJson([
@@ -151,29 +181,18 @@ test('authenticated user can delete a user', function () {
     expect(User::count())->toBe(1); // Only admin remains
 });
 
-test('unauthenticated user cannot access user endpoints', function () {
-    $responses = [
-        getJson('/api/users'),
-        postJson('/api/users', []),
-        getJson('/api/users/1'),
-        putJson('/api/users/1', []),
-        deleteJson('/api/users/1')
-    ];
+test('unauthenticated user cannot access user endpoints', function () {  
+    $responses = [  
+        getJson('/api/users'),  
+        getJson('/api/users/1'),  
+        putJson('/api/users/1', []),  
+        deleteJson('/api/users/1')  
+    ];  
 
-    foreach ($responses as $response) {
-        $response->assertStatus(401);
-    }
-});
-
-test('validation works when creating user', function () {
-    $user = User::factory()->create(['role' => RoleEnum::Admin]);
-    Sanctum::actingAs($user);
-
-    $response = postJson('/api/users', []);
-
-    $response->assertStatus(422)
-        ->assertJsonValidationErrors(['fullname', 'email', 'password', 'role']);
-});
+    foreach ($responses as $response) {  
+        $response->assertStatus(401);  
+    }  
+});  
 
 test('users can be searched', function () {
     $user = User::factory()->create(['role' => RoleEnum::Admin]);

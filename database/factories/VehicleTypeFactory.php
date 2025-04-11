@@ -12,8 +12,7 @@ class VehicleTypeFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->randomElement(['Car', 'Truck', 'Van', 'Motorcycle']),
-            'description' => $this->faker->sentence(),
+            'name' => $this->faker->unique()->word() . ' Vehicle',
         ];
     }
 } 

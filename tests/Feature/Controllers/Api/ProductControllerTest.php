@@ -7,7 +7,6 @@ use Laravel\Sanctum\Sanctum;
 use function Pest\Laravel\{getJson, postJson, putJson, deleteJson};
 
 beforeEach(function () {
-    // Clear database
     Product::query()->delete();
     User::query()->delete();
 });
@@ -36,9 +35,9 @@ test('authenticated user can list products', function () {
         ]);
 });
 
-test('authenticated user can create a product', function () {
-    $user = User::factory()->create();
-    Sanctum::actingAs($user);
+test('super admin user can create a product', function () {
+    $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
+    Sanctum::actingAs($superAdmin);
 
     $productData = [
         'name' => 'Test Product',
@@ -62,7 +61,7 @@ test('authenticated user can create a product', function () {
     expect(Product::count())->toBe(1);
 });
 
-test('authenticated user can view a specific product', function () {
+test('any authenticated user can view a specific product', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
@@ -82,9 +81,9 @@ test('authenticated user can view a specific product', function () {
         ]);
 });
 
-test('authenticated user can update a product', function () {
-    $user = User::factory()->create();
-    Sanctum::actingAs($user);
+test('super_admin can update a product', function () {
+    $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
+    Sanctum::actingAs($superAdmin);
 
     $product = Product::factory()->create();
     $updateData = [
@@ -111,8 +110,8 @@ test('authenticated user can update a product', function () {
 });
 
 test('authenticated user can delete a product', function () {
-    $user = User::factory()->create();
-    Sanctum::actingAs($user);
+    $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
+    Sanctum::actingAs($superAdmin);
 
     $product = Product::factory()->create();
 
