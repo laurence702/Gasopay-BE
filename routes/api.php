@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\RiderController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\PaymentProofController;
