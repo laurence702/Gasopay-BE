@@ -23,13 +23,15 @@ class PaymentHistoryController extends Controller
         $this->middleware('role:Admin|SuperAdmin')->only('markCashPayment');
     }
 
-    /**
-     * Display a listing of payment histories.
-     */
     public function index(): JsonResponse
     {
-        $payments = PaymentHistory::with(['payer', 'approver', 'product', 'branch'])
-            ->paginate(10);
+        $cacheKey = 'payment_histories:index';
+        
+        $payments = cache()->remember($cacheKey, 300, function () {
+            return PaymentHistory::with(['payer', 'approver', 'product', 'branch'])
+                ->paginate(10);
+        });
+
         return PaymentHistoryResource::collection($payments)->response();
     }
 
@@ -51,6 +53,8 @@ class PaymentHistoryController extends Controller
             'status' => \App\Enums\PaymentStatusEnum::Pending,
         ]);
 
+        cache()->tags(['payment_histories'])->flush();
+
         return (new PaymentHistoryResource($payment))
             ->response()
             ->setStatusCode(201);
@@ -61,6 +65,7 @@ class PaymentHistoryController extends Controller
      */
     public function show(PaymentHistory $paymentHistory): PaymentHistoryResource
     {
+        $paymentHistory = PaymentHistory::findCached($paymentHistory->id);
         $paymentHistory->load(['payer', 'approver', 'product', 'branch', 'paymentProofs']);
         return new PaymentHistoryResource($paymentHistory);
     }
@@ -77,6 +82,8 @@ class PaymentHistoryController extends Controller
         }
 
         $paymentHistory->update($data);
+        cache()->tags(['payment_histories'])->flush();
+
         return new PaymentHistoryResource($paymentHistory);
     }
 
@@ -86,6 +93,8 @@ class PaymentHistoryController extends Controller
     public function destroy(PaymentHistory $paymentHistory): JsonResponse
     {
         $paymentHistory->delete();
+        cache()->tags(['payment_histories'])->flush();
+        
         return response()->json(['message' => 'Payment history deleted'], 204);
     }
 
@@ -96,6 +105,7 @@ class PaymentHistoryController extends Controller
     {
         $amount = $request->validated()['amount'];
         $paymentHistory->markAsPaid($amount, $request->user(), PaymentMethodEnum::Cash->value);
+        cache()->tags(['payment_histories'])->flush();
 
         return response()->json(['message' => 'Cash payment marked successfully']);
     }

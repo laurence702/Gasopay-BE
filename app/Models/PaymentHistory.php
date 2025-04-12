@@ -8,10 +8,13 @@ use App\Enums\PaymentStatusEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Enums\PaymentTypeEnum;
+use App\Traits\Cacheable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class PaymentHistory extends Model
 {
-    use HasUuids;
+    use HasUuids, HasFactory, Cacheable;
 
     protected $fillable = [
         'order_id',
@@ -22,6 +25,9 @@ class PaymentHistory extends Model
         'payment_method',
         'approved_by',
         'approved_at',
+        'payment_type',
+        'payment_proof_id',
+        'paid_at',
     ];
 
     protected $casts = [
@@ -29,6 +35,8 @@ class PaymentHistory extends Model
         'approved_at' => 'datetime',
         'status' => PaymentStatusEnum::class,
         'payment_method' => PaymentMethodEnum::class,
+        'payment_type' => PaymentTypeEnum::class,
+        'paid_at' => 'datetime',
     ];
 
     protected $attributes = [
@@ -69,6 +77,11 @@ class PaymentHistory extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    public function paymentProof(): BelongsTo
+    {
+        return $this->belongsTo(PaymentProof::class);
+    }
+
     public function paymentProofs()
     {
         return $this->hasMany(PaymentProof::class);
@@ -83,5 +96,13 @@ class PaymentHistory extends Model
             'approved_by' => $approver->id,
             'approved_at' => now(),
         ]);
+    }
+
+    /**
+     * Override the default cache TTL for payment histories.
+     */
+    protected function getCacheTTL(): int
+    {
+        return 900; // 15 minutes for payment histories
     }
 }

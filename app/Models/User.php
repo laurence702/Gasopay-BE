@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RoleEnum;
+use App\Traits\Cacheable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
@@ -14,7 +15,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasUuids;
+    use HasApiTokens, HasFactory, Notifiable, HasUuids, Cacheable;
 
     /**
      * The attributes that are mass assignable.
@@ -108,5 +109,13 @@ class User extends Authenticatable
     public function canApprovePayments()
     {
         return $this->role === RoleEnum::Admin || $this->role === RoleEnum::SuperAdmin;
+    }
+
+    /**
+     * Override the default cache TTL for users.
+     */
+    protected function getCacheTTL(): int
+    {
+        return 1800; // 30 minutes for users
     }
 }
