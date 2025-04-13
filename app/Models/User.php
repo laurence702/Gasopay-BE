@@ -12,10 +12,11 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasUuids, Cacheable;
+    use HasApiTokens, HasFactory, Notifiable, HasUuids, Cacheable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -117,5 +118,27 @@ class User extends Authenticatable
     protected function getCacheTTL(): int
     {
         return 1800; // 30 minutes for users
+    }
+
+    /**
+     * Scope a query to only include active users.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeActive($query)
+    {
+        return $query->whereNull('deleted_at');
+    }
+
+    /**
+     * Scope a query to only include deleted users.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeDeleted($query)
+    {
+        return $query->whereNotNull('deleted_at');
     }
 }

@@ -3,8 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Enums\RoleEnum;
+use App\Enums\VehicleTypeEnum;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\Rule;
 
 class RegisterUserRequest extends FormRequest
 {
@@ -22,18 +23,18 @@ class RegisterUserRequest extends FormRequest
     {
         return [
             // User fields
-            'fullname' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'phone' => 'required|string|max:20',
-            'role' => ['required', 'string', new Enum(RoleEnum::class)],
+            'fullname' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'phone' => ['required', 'string', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', Rule::in(RoleEnum::cases())],
             'branch_id' => 'nullable|exists:branches,id',
             
             // User Profile fields (only required for regular users and riders)
-            'address' => 'required_if:role,regular,rider|string|max:255',
-            'vehicle_type_id' => 'required_if:role,rider|exists:vehicle_types,id',
-            'nin' => 'required_if:role,regular,rider|string|max:20',
-            'guarantors_name' => 'required_if:role,regular,rider|string|max:255',
+            'address' => ['required_if:role,' . RoleEnum::Rider->value, 'string'],
+            'vehicle_type' => ['required_if:role,' . RoleEnum::Rider->value, Rule::in(VehicleTypeEnum::cases())],
+            'nin' => ['required_if:role,' . RoleEnum::Rider->value, 'string'],
+            'guarantors_name' => ['required_if:role,' . RoleEnum::Rider->value, 'string'],
             'photo' => 'nullable|image|max:2048',
             'barcode' => 'nullable|string|max:255',
         ];

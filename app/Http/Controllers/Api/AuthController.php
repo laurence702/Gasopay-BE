@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
+use App\Enums\RoleEnum;
 
 class AuthController extends Controller
 {
@@ -34,16 +35,12 @@ class AuthController extends Controller
             ]);
 
             // Create user profile for regular users and riders
-            if (in_array($user->role->value, ['regular', 'rider'])) {
-                UserProfile::create([
-                    'user_id' => $user->id,
-                    'phone' => $validatedData['phone'],
+            if (in_array($validatedData['role'], [RoleEnum::Regular->value, RoleEnum::Rider->value])) {
+                $user->userProfile()->create([
                     'address' => $validatedData['address'],
-                    'vehicle_type_id' => $validatedData['vehicle_type_id'] ?? null,
                     'nin' => $validatedData['nin'],
                     'guarantors_name' => $validatedData['guarantors_name'],
-                    'photo' => $validatedData['photo'] ?? null,
-                    'barcode' => $validatedData['barcode'] ?? null,
+                    'vehicle_type' => $validatedData['vehicle_type'] ?? null,
                 ]);
             }
 

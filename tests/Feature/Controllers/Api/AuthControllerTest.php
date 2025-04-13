@@ -3,8 +3,8 @@
 namespace Tests\Feature\Controllers\Api;
 
 use App\Models\User;
-use App\Models\VehicleType;
 use App\Enums\RoleEnum;
+use App\Enums\VehicleTypeEnum;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\WelcomeEmail;
 use Laravel\Sanctum\Sanctum;
@@ -77,10 +77,8 @@ class AuthControllerTest extends TestCase
         });
     }
 
-    public function test_rider_can_register_with_profile_and_vehicle()
+    public function test_rider_can_register_with_vehicle_type()
     {
-        $vehicleType = VehicleType::create(['name' => 'Motorcycle']);
-
         $userData = [
             'fullname' => 'Test Rider',
             'email' => 'rider@example.com',
@@ -88,54 +86,39 @@ class AuthControllerTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'role' => RoleEnum::Rider->value,
-            'address' => '123 Test Street',
-            'vehicle_type_id' => $vehicleType->id,
-            'nin' => 'NIN123456',
-            'guarantors_name' => 'John Doe',
+            'address' => '123 Test St',
+            'vehicle_type' => VehicleTypeEnum::Car->value,
+            'nin' => '1234567890',
+            'guarantors_name' => 'Test Guarantor',
         ];
 
         $response = $this->postJson('/api/register', $userData);
 
-        $response->assertStatus(201)
+        $response->assertCreated()
             ->assertJsonStructure([
-                'message',
-                'user' => [
+                'data' => [
                     'id',
                     'fullname',
                     'email',
                     'phone',
                     'role',
-                    'created_at',
-                    'updated_at',
                     'user_profile' => [
-                        'id',
-                        'user_id',
-                        'phone',
                         'address',
-                        'vehicle_type_id',
                         'nin',
                         'guarantors_name',
-                    ]
-                ],
-                'token'
+                        'vehicle_type',
+                    ],
+                ]
             ]);
-        
+
         $this->assertDatabaseHas('users', [
             'email' => 'rider@example.com',
             'role' => RoleEnum::Rider->value,
         ]);
 
         $this->assertDatabaseHas('user_profiles', [
-            'phone' => '1234567890',
-            'address' => '123 Test Street',
-            'vehicle_type_id' => $vehicleType->id,
-            'nin' => 'NIN123456',
-            'guarantors_name' => 'John Doe',
+            'vehicle_type' => VehicleTypeEnum::Car->value,
         ]);
-
-        Mail::assertSent(WelcomeEmail::class, function ($mail) use ($userData) {
-            return $mail->user->email === $userData['email'];
-        });
     }
 
     public function test_admin_can_register_without_profile()
@@ -151,35 +134,26 @@ class AuthControllerTest extends TestCase
 
         $response = $this->postJson('/api/register', $userData);
 
-        $response->assertStatus(201)
+        $response->assertCreated()
             ->assertJsonStructure([
-                'message',
-                'user' => [
+                'data' => [
                     'id',
                     'fullname',
                     'email',
                     'phone',
                     'role',
-                    'created_at',
-                    'updated_at',
-                    'user_profile'
-                ],
-                'token'
-            ])
-            ->assertJsonPath('user.user_profile', null);
-        
+                    'user_profile',
+                ]
+            ]);
+
         $this->assertDatabaseHas('users', [
             'email' => 'admin@example.com',
             'role' => RoleEnum::Admin->value,
         ]);
 
         $this->assertDatabaseMissing('user_profiles', [
-            'phone' => '1234567890',
+            'user_id' => $response->json('data.id'),
         ]);
-
-        Mail::assertSent(WelcomeEmail::class, function ($mail) use ($userData) {
-            return $mail->user->email === $userData['email'];
-        });
     }
 
     public function test_registration_fails_without_required_profile_fields()

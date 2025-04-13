@@ -10,11 +10,14 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->ulid('id')->primary();
-            $table->string('name');
+            $table->string('fullname');
+            $table->string('phone')->unique();
             $table->string('email')->unique();
+            $table->enum('role', ['admin', 'rider', 'regular', 'super_admin']);
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->uuid('profile_id')->nullable()->comment('for rider and non-admin users only');
+            $table->boolean('profile_verified')->default(false);
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();

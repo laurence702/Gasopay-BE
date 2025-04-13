@@ -3,11 +3,11 @@
 namespace Tests\Feature\Controllers\Api;
 
 use App\Enums\RoleEnum;
+use App\Enums\VehicleTypeEnum;
 use App\Models\User;
 use App\Models\Branch;
-use App\Models\VehicleType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 use Illuminate\Contracts\Auth\Authenticatable;
 use function Pest\Laravel\{getJson, postJson, putJson, deleteJson};
@@ -19,8 +19,7 @@ class UserControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->artisan('migrate');
-        cache()->tags(['users'])->flush();
+        Cache::flush();
     }
 
     public function test_authenticated_user_can_list_users()
@@ -58,16 +57,15 @@ class UserControllerTest extends TestCase
         $admin = User::factory()->create(['role' => RoleEnum::Admin]);
         $this->actingAs($admin);
 
-        $vehicleType = VehicleType::create(['name' => 'Motorcycle']);
-
         $userData = [
             'fullname' => 'Test Rider',
             'email' => 'rider@example.com',
             'phone' => '1234567890',
             'password' => 'password123',
+            'password_confirmation' => 'password123',
             'role' => RoleEnum::Rider->value,
             'address' => '123 Test St',
-            'vehicle_type_id' => $vehicleType->id,
+            'vehicle_type' => VehicleTypeEnum::Car->value,
             'nin' => '1234567890',
             'guarantors_name' => 'Test Guarantor',
         ];
@@ -97,7 +95,7 @@ class UserControllerTest extends TestCase
 
         $this->assertDatabaseHas('user_profiles', [
             'user_id' => $response->json('data.id'),
-            'vehicle_type_id' => $vehicleType->id,
+            'vehicle_type' => VehicleTypeEnum::Car->value,
         ]);
     }
 
@@ -183,6 +181,49 @@ class UserControllerTest extends TestCase
                 'message' => 'User deleted successfully'
             ]);
 
+        $this->assertSoftDeleted('users', [
+            'id' => $targetUser->id,
+        ]);
+    }
+
+    public function test_user_can_be_restored()
+    {
+        /** @var Authenticatable $admin */
+        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+        $this->actingAs($admin);
+
+        $targetUser = User::factory()->create();
+        $targetUser->delete();
+
+        $response = $this->postJson("/api/users/{$targetUser->id}/restore");
+
+        $response->assertOk()
+            ->assertJson([
+                'message' => 'User restored successfully'
+            ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $targetUser->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_user_can_be_force_deleted()
+    {
+        /** @var Authenticatable $admin */
+        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+        $this->actingAs($admin);
+
+        $targetUser = User::factory()->create();
+        $targetUser->delete();
+
+        $response = $this->deleteJson("/api/users/{$targetUser->id}/force");
+
+        $response->assertOk()
+            ->assertJson([
+                'message' => 'User permanently deleted'
+            ]);
+
         $this->assertDatabaseMissing('users', [
             'id' => $targetUser->id,
         ]);
@@ -193,8 +234,9 @@ class UserControllerTest extends TestCase
         $response = $this->getJson('/api/users');
         $response->assertUnauthorized();
 
+        // POST to /api/users is not allowed (405) as we use specific endpoints for user creation
         $response = $this->postJson('/api/users', []);
-        $response->assertUnauthorized();
+        $response->assertStatus(405);
 
         $response = $this->getJson('/api/users/1');
         $response->assertUnauthorized();

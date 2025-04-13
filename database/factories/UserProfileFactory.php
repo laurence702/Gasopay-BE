@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Enums\VehicleTypeEnum;
 use App\Models\User;
 use App\Models\UserProfile;
-use App\Models\VehicleType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class UserProfileFactory extends Factory
@@ -17,7 +17,7 @@ class UserProfileFactory extends Factory
             'user_id' => User::factory(),
             'phone' => $this->faker->phoneNumber(),
             'address' => $this->faker->address(),
-            'vehicle_type_id' => VehicleType::factory(),
+            'vehicle_type' => $this->faker->randomElement(VehicleTypeEnum::cases())->value,
             'nin' => $this->faker->numerify('##########'),
             'guarantors_name' => $this->faker->name(),
             'photo' => $this->faker->imageUrl(),
