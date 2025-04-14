@@ -27,7 +27,6 @@ class UserProfileController extends Controller
     {
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
-            'phone' => 'required|string',
             'address' => 'required|string',
             'vehicle_type_id' => 'required|exists:vehicle_types,id',
             'nin' => 'nullable|string',
@@ -55,7 +54,6 @@ class UserProfileController extends Controller
     public function update(Request $request, UserProfile $userProfile): UserProfileResource
     {
         $validated = $request->validate([
-            'phone' => 'sometimes|required|string',
             'address' => 'sometimes|required|string',
             'vehicle_type_id' => 'sometimes|required|exists:vehicle_types,id',
             'nin' => 'nullable|string',

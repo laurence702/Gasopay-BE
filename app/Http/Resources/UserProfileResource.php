@@ -20,7 +20,6 @@ class UserProfileResource extends JsonResource
             'id' => $this->id,
             'user_id' => $this->user_id,
             'user' => new UserResource($this->whenLoaded('user')),
-            'phone' => $this->phone,
             'address' => $this->address,
             'vehicle_type' => $this->vehicle_type,
             'nin' => $this->nin,
