@@ -35,6 +35,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
+    Route::post('/users/{id}/restore', [UserController::class, 'restore']);
+    Route::delete('/users/{id}/force', [UserController::class, 'forceDelete']);
 
     // Product routes
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
