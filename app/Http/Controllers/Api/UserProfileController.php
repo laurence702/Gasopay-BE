@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Resources\UserProfileCollection;
-use App\Http\Resources\UserProfileResource;
 use App\Models\UserProfile;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Enums\VehicleTypeEnum;
+use Illuminate\Http\JsonResponse;
+use App\Http\Controllers\Controller;
+use Illuminate\Validation\Rules\Enum;
+use App\Http\Resources\UserProfileResource;
+use App\Http\Resources\UserProfileCollection;
 
 class UserProfileController extends Controller
 {
@@ -28,7 +30,7 @@ class UserProfileController extends Controller
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'address' => 'required|string',
-            'vehicle_type_id' => 'required|exists:vehicle_types,id',
+            'vehicle_type' => ['sometimes', new Enum(VehicleTypeEnum::class)],
             'nin' => 'nullable|string',
             'guarantors_name' => 'nullable|string',
             'photo' => 'nullable|string',
@@ -55,7 +57,7 @@ class UserProfileController extends Controller
     {
         $validated = $request->validate([
             'address' => 'sometimes|required|string',
-            'vehicle_type_id' => 'sometimes|required|exists:vehicle_types,id',
+            'vehicle_type' => ['sometimes', new Enum(VehicleTypeEnum::class)],
             'nin' => 'nullable|string',
             'guarantors_name' => 'nullable|string',
             'photo' => 'nullable|string',

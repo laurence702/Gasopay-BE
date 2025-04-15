@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\VehicleTypeEnum;
+use Illuminate\Validation\Rules\Enum;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateUserProfileRequest extends FormRequest
@@ -24,7 +26,7 @@ class UpdateUserProfileRequest extends FormRequest
         return [
             'phone' => ['sometimes', 'string', 'max:20'],
             'address' => ['sometimes', 'string', 'max:255'],
-            'vehicle_type_id' => ['nullable', 'exists:vehicle_types,id'],
+            'vehicle_type' => ['sometimes', new Enum(VehicleTypeEnum::class)],
             'nin' => ['sometimes', 'string', 'max:20'],
             'guarantors_name' => ['sometimes', 'string', 'max:255'],
             'photo' => ['nullable', 'image', 'max:2048'],

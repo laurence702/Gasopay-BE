@@ -2,18 +2,17 @@
 
 namespace Tests\Feature\Controllers\Api;
 
+use Tests\TestCase;
 use App\Models\User;
 use App\Models\UserProfile;
-use App\Models\VehicleType;
+use App\Enums\VehicleTypeEnum;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 
 class UserProfileControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     private User $user;
-    private VehicleType $vehicleType;
     private array $profileData;
 
     protected function setUp(): void
@@ -21,11 +20,10 @@ class UserProfileControllerTest extends TestCase
         parent::setUp();
 
         $this->user = User::factory()->create();
-        $this->vehicleType = VehicleType::create(['name' => 'Car']);
         
         $this->profileData = [
             'user_id' => $this->user->id,
-            'vehicle_type_id' => $this->vehicleType->id,
+            'vehicle_type' => VehicleTypeEnum::Car,
             'phone' => '1234567890',
             'address' => '123 Test Street',
             'nin' => 'NIN123456',
@@ -56,12 +54,7 @@ class UserProfileControllerTest extends TestCase
                             'role',
                             'branch_id',
                         ],
-                        'vehicle_type_id',
-                        'vehicle_type' => [
-                            'id',
-                            'name',
-                        ],
-                        'phone',
+                        'vehicle_type',
                         'address',
                         'nin',
                         'guarantors_name',
@@ -123,11 +116,8 @@ class UserProfileControllerTest extends TestCase
                         'role',
                         'branch_id',
                     ],
-                    'vehicle_type_id',
-                    'vehicle_type' => [
-                        'id',
-                        'name',
-                    ],
+                    'vehicle_type',
+
                     'phone',
                     'address',
                     'nin',
@@ -162,11 +152,7 @@ class UserProfileControllerTest extends TestCase
                         'role',
                         'branch_id',
                     ],
-                    'vehicle_type_id',
-                    'vehicle_type' => [
-                        'id',
-                        'name',
-                    ],
+                    'vehicle_type',
                     'phone',
                     'address',
                     'nin',
@@ -204,11 +190,7 @@ class UserProfileControllerTest extends TestCase
                         'role',
                         'branch_id',
                     ],
-                    'vehicle_type_id',
-                    'vehicle_type' => [
-                        'id',
-                        'name',
-                    ],
+                    'vehicle_type',
                     'phone',
                     'address',
                     'nin',

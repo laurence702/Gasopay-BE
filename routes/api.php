@@ -8,7 +8,6 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\PaymentHistoryController;
 use App\Http\Controllers\Api\UserProfileController;
-use App\Http\Controllers\Api\VehicleTypeController;
 use App\Http\Controllers\Api\OrderController;
 
 /*
@@ -49,10 +48,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/user-profiles/{userProfile}', [UserProfileController::class, 'update'])->name('user-profiles.update');
     Route::delete('/user-profiles/{userProfile}', [UserProfileController::class, 'destroy'])->name('user-profiles.destroy');
 
-    // Vehicle Type routes
-    Route::get('/vehicle-types', [VehicleTypeController::class, 'index'])->name('vehicle-types.index');
-    Route::get('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'show'])->name('vehicle-types.show');
-
     // Branch routes - accessible to all authenticated users
     Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
     Route::get('/branches/{branch}', [BranchController::class, 'show'])
@@ -82,11 +77,6 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SuperAdmin::class])->gro
     Route::post('/products', [ProductController::class, 'store'])->name('products.store');
     Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
-
-    // Vehicle Type management routes
-    Route::post('/vehicle-types', [VehicleTypeController::class, 'store'])->name('vehicle-types.store');
-    Route::put('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'update'])->name('vehicle-types.update');
-    Route::delete('/vehicle-types/{vehicleType}', [VehicleTypeController::class, 'destroy'])->name('vehicle-types.destroy');
 
     //Payment routes
     Route::apiResource('payment-histories', PaymentHistoryController::class);

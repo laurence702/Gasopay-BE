@@ -2,13 +2,12 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\VehicleTypeEnum;
+use Illuminate\Validation\Rules\Enum;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreUserProfileRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
@@ -25,7 +24,7 @@ class StoreUserProfileRequest extends FormRequest
             'user_id' => ['required', 'exists:users,id'],
             'phone' => ['required', 'string', 'max:20'],
             'address' => ['required', 'string', 'max:255'],
-            'vehicle_type_id' => ['nullable', 'exists:vehicle_types,id'],
+            'vehicle_type' => ['sometimes', new Enum(VehicleTypeEnum::class)],
             'nin' => ['required', 'string', 'max:20'],
             'guarantors_name' => ['required', 'string', 'max:255'],
             'photo' => ['nullable', 'image', 'max:2048'],
