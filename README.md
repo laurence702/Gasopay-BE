@@ -1,6 +1,6 @@
 # Gasopay API
 
-A Laravel-based API for managing fuel payments and user profiles.
+A Laravel-based API for managing product payments
 
 ## Requirements
 
@@ -38,7 +38,7 @@ php artisan key:generate
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=gasopay
+DB_DATABASE=your_db
 DB_USERNAME=your_username
 DB_PASSWORD=your_password
 ```
@@ -93,46 +93,6 @@ Run specific test files:
 ```bash
 php artisan test tests/Feature/Controllers/Api/AuthControllerTest.php
 ```
-
-## API Documentation
-
-The API documentation is available at `/api/documentation` when running the application.
-
-### Authentication
-
-All API endpoints (except login and register) require authentication using Bearer tokens.
-
-### Available Endpoints
-
-- `POST /api/register` - Register a new user
-- `POST /api/login` - Login and get authentication token
-- `GET /api/me` - Get authenticated user's information
-- `POST /api/logout` - Logout and invalidate token
-
-## User Roles
-
-The system supports the following user roles:
-- SuperAdmin
-- Admin
-- Rider
-- Regular
-
-## Database Structure
-
-The application uses the following main tables:
-- `users` - Stores user information
-- `user_profiles` - Stores additional user profile information
-- `vehicle_types` - Stores available vehicle types
-- `payment_histories` - Stores payment records
-- `branches` - Stores branch information
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## License
 

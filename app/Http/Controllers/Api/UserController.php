@@ -22,9 +22,7 @@ class UserController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:api');
-        $this->middleware('throttle:60,1')->except(['destroy']);
-        $this->middleware('throttle:10,1')->only(['destroy']);
+        // Middleware moved to routes file
     }
 
     public function index(): AnonymousResourceCollection

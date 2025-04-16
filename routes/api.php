@@ -29,13 +29,20 @@ Route::get('/me', [AuthController::class, 'loggedInUser'])->middleware('auth:san
 
 // Protected routes
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/users', [UserController::class, 'index'])->name('users.index');
-    Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
-    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
-    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-    Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
-    Route::post('/users/{id}/restore', [UserController::class, 'restore']);
-    Route::delete('/users/{id}/force', [UserController::class, 'forceDelete']);
+    // User routes with rate limiting
+    Route::middleware(['throttle:60,1'])->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
+        Route::post('/users/{id}/restore', [UserController::class, 'restore']);
+    });
+
+    // User routes with different rate limiting
+    Route::middleware(['throttle:10,1'])->group(function () {
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+        Route::delete('/users/{id}/force', [UserController::class, 'forceDelete']);
+    });
 
     // Product routes
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');

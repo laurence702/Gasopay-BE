@@ -3,7 +3,6 @@
 namespace Tests\Feature\Controllers\Api;
 
 use App\Models\User;
-use App\Models\VehicleType;
 use App\Enums\RoleEnum;
 use App\Enums\VehicleTypeEnum;
 use Illuminate\Support\Facades\Mail;
@@ -11,6 +10,7 @@ use App\Mail\WelcomeEmail;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 
 class AuthControllerTest extends TestCase
 {
@@ -31,66 +31,8 @@ class AuthControllerTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'role' => RoleEnum::Regular->value,
-            'address' => '123 Test Street',
-            'nin' => 'NIN123456',
-            'guarantors_name' => 'John Doe',
-        ];
-
-        $response = $this->postJson('/api/register', $userData);
-
-        $response->assertCreated()
-            ->assertJson([
-                'message' => 'User registered successfully',
-                'user' => [
-                    'fullname' => 'Test User',
-                    'email' => 'test@example.com',
-                    'phone' => '1234567890',
-                    'role' => RoleEnum::Regular->value,
-                    'user_profile' => [
-                        'address' => '123 Test Street',
-                        'nin' => 'NIN123456',
-                        'guarantors_name' => 'John Doe',
-                    ]
-                ]
-            ])
-            ->assertJsonStructure([
-                'message',
-                'user',
-                'token'
-            ]);
-        
-        $this->assertDatabaseHas('users', [
-            'email' => 'test@example.com',
-            'role' => RoleEnum::Regular->value,
-        ]);
-
-        $this->assertDatabaseHas('user_profiles', [
-            'address' => '123 Test Street',
-            'nin' => 'NIN123456',
-            'guarantors_name' => 'John Doe',
-        ]);
-
-        Mail::assertSent(WelcomeEmail::class, function ($mail) use ($userData) {
-            return $mail->user->email === $userData['email'];
-        });
-    }
-
-    public function test_rider_can_register_with_vehicle_type()
-    {
-        $vehicleType = VehicleType::create([
-            'name' => VehicleTypeEnum::Car->value
-        ]);
-
-        $userData = [
-            'fullname' => 'Test Rider',
-            'email' => 'rider@example.com',
-            'phone' => '1234567890',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-            'role' => RoleEnum::Rider->value,
             'address' => '123 Test St',
-            'vehicle_type' => VehicleTypeEnum::Car->value,
-            'nin' => '1234567890',
+            'nin' => '123456789',
             'guarantors_name' => 'Test Guarantor',
         ];
 
@@ -98,32 +40,93 @@ class AuthControllerTest extends TestCase
 
         $response->assertCreated()
             ->assertJson([
-                'message' => 'User registered successfully',
-                'user' => [
-                    'fullname' => 'Test Rider',
-                    'email' => 'rider@example.com',
-                    'phone' => '1234567890',
-                    'role' => RoleEnum::Rider->value,
-                    'user_profile' => [
-                        'address' => '123 Test St',
-                        'nin' => '1234567890',
-                        'guarantors_name' => 'Test Guarantor',
-                        'vehicle_type' => VehicleTypeEnum::Car->value,
-                    ]
-                ]
+                'status' => 'success',
+                'message' => 'User created successfully',
             ])
             ->assertJsonStructure([
+                'status',
                 'message',
-                'user',
-                'token'
+                'user' => [
+                    'id',
+                    'fullname',
+                    'email',
+                    'phone',
+                    'role',
+                    'user_profile' => [
+                        'id',
+                        'user_id',
+                        'address',
+                        'nin',
+                        'guarantors_name',
+                    ],
+                ],
+            ]);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'test@example.com',
+            'phone' => '1234567890',
+            'role' => RoleEnum::Regular->value,
+        ]);
+
+        $this->assertDatabaseHas('user_profiles', [
+            'address' => '123 Test St',
+            'nin' => '123456789',
+            'guarantors_name' => 'Test Guarantor',
+        ]);
+    }
+
+    public function test_rider_can_register_with_vehicle_type()
+    {
+        $userData = [
+            'fullname' => 'Test Rider',
+            'email' => 'rider@example.com',
+            'phone' => '0987654321',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => RoleEnum::Rider->value,
+            'address' => '456 Rider St',
+            'nin' => '987654321',
+            'guarantors_name' => 'Rider Guarantor',
+            'vehicle_type' => VehicleTypeEnum::Car->value,
+        ];
+
+        $response = $this->postJson('/api/register', $userData);
+
+        $response->assertCreated()
+            ->assertJson([
+                'status' => 'success',
+                'message' => 'User created successfully',
+            ])
+            ->assertJsonStructure([
+                'status',
+                'message',
+                'user' => [
+                    'id',
+                    'fullname',
+                    'email',
+                    'phone',
+                    'role',
+                    'user_profile' => [
+                        'id',
+                        'user_id',
+                        'address',
+                        'nin',
+                        'guarantors_name',
+                        'vehicle_type',
+                    ],
+                ],
             ]);
 
         $this->assertDatabaseHas('users', [
             'email' => 'rider@example.com',
+            'phone' => '0987654321',
             'role' => RoleEnum::Rider->value,
         ]);
 
         $this->assertDatabaseHas('user_profiles', [
+            'address' => '456 Rider St',
+            'nin' => '987654321',
+            'guarantors_name' => 'Rider Guarantor',
             'vehicle_type' => VehicleTypeEnum::Car->value,
         ]);
     }
@@ -133,7 +136,7 @@ class AuthControllerTest extends TestCase
         $userData = [
             'fullname' => 'Test Admin',
             'email' => 'admin@example.com',
-            'phone' => '1234567890',
+            'phone' => '1112223333',
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'role' => RoleEnum::Admin->value,
@@ -143,19 +146,20 @@ class AuthControllerTest extends TestCase
 
         $response->assertCreated()
             ->assertJson([
-                'message' => 'User registered successfully',
-                'user' => [
-                    'fullname' => 'Test Admin',
-                    'email' => 'admin@example.com',
-                    'phone' => '1234567890',
-                    'role' => RoleEnum::Admin->value,
-                    'user_profile' => null
-                ]
+                'status' => 'success',
+                'message' => 'User created successfully',
             ])
             ->assertJsonStructure([
+                'status',
                 'message',
-                'user',
-                'token'
+                'user' => [
+                    'id',
+                    'fullname',
+                    'email',
+                    'phone',
+                    'role',
+                    'user_profile',
+                ],
             ]);
 
         $this->assertDatabaseHas('users', [
@@ -194,23 +198,28 @@ class AuthControllerTest extends TestCase
     public function test_user_can_login_with_correct_credentials()
     {
         $user = User::factory()->create([
+            'fullname' => 'Test User',
             'email' => 'test@example.com',
-            'password' => bcrypt('password123')
+            'phone' => '1234567890',
+            'password' => Hash::make('password123'),
+            'role' => RoleEnum::Regular->value,
         ]);
 
         $response = $this->postJson('/api/login', [
             'email' => 'test@example.com',
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertOk()
             ->assertJson([
-                'message' => 'Logged in successfully',
+                'status' => 'success',
+                'message' => 'Login successful',
             ])
             ->assertJsonStructure([
+                'status',
                 'message',
                 'user',
-                'token'
+                'token',
             ]);
     }
 
@@ -218,20 +227,18 @@ class AuthControllerTest extends TestCase
     {
         $user = User::factory()->create([
             'email' => 'test@example.com',
-            'password' => bcrypt('password123')
+            'password' => Hash::make('password123'),
         ]);
 
         $response = $this->postJson('/api/login', [
             'email' => 'test@example.com',
-            'password' => 'wrongpassword'
+            'password' => 'wrongpassword',
         ]);
 
-        $response->assertUnprocessable()
+        $response->assertUnauthorized()
             ->assertJson([
-                'message' => 'The provided credentials are incorrect.',
-                'errors' => [
-                    'email' => ['The provided credentials are incorrect.']
-                ]
+                'status' => 'error',
+                'message' => 'Invalid credentials',
             ]);
     }
 

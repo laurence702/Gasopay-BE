@@ -14,76 +14,80 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use App\Enums\RoleEnum;
+use Illuminate\Support\Facades\DB;
+use App\Http\Resources\UserResource;
+use App\Http\Requests\LoginRequest;
 
 class AuthController extends Controller
 {
     public function register(RegisterUserRequest $request)
     {
         try {
-            $validatedData = $request->validated();
-            $plainPassword = $validatedData['password'];
-            $validatedData['password'] = Hash::make($validatedData['password']);
+            DB::beginTransaction();
 
-            // Create user
+            $validated = $request->validated();
             $user = User::create([
-                'fullname' => $validatedData['fullname'],
-                'email' => $validatedData['email'],
-                'phone' => $validatedData['phone'],
-                'password' => $validatedData['password'],
-                'role' => $validatedData['role'],
-                'branch_id' => $validatedData['branch_id'] ?? null,
+                'fullname' => $validated['fullname'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'password' => Hash::make($validated['password']),
+                'role' => $validated['role'],
             ]);
 
             // Create user profile for regular users and riders
-            if (in_array($validatedData['role'], [RoleEnum::Regular->value, RoleEnum::Rider->value])) {
+            if (in_array($validated['role'], [RoleEnum::Regular->value, RoleEnum::Rider->value])) {
                 $user->userProfile()->create([
-                    'address' => $validatedData['address'],
-                    'nin' => $validatedData['nin'],
-                    'guarantors_name' => $validatedData['guarantors_name'],
-                    'vehicle_type' => $validatedData['vehicle_type'] ?? null,
+                    'address' => $validated['address'] ?? null,
+                    'nin' => $validated['nin'] ?? null,
+                    'guarantors_name' => $validated['guarantors_name'] ?? null,
+                    'vehicle_type' => $validated['vehicle_type'] ?? null,
                 ]);
             }
 
-            // Generate token
-            $token = $user->createToken('auth_token')->plainTextToken;
-
             // Send welcome email
-            Mail::to($user->email)->send(new WelcomeEmail($user, $plainPassword));
+            Mail::to($user->email)->send(new WelcomeEmail($user, $validated['password']));
 
+            DB::commit();
+
+            $user->load('userProfile');
             return response()->json([
-                'message' => 'User registered successfully',
-                'user' => $user->load('userProfile'),
-                'token' => $token
+                'status' => 'success',
+                'message' => 'User created successfully',
+                'user' => new UserResource($user),
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Registration error:', ['error' => $e->getMessage()]);
+            DB::rollBack();
             return response()->json([
-                'message' => 'Registration failed',
-                'error' => $e->getMessage()
+                'status' => 'error',
+                'message' => 'Failed to create user: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
-
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+        $credentials = $request->validated();
+        $loginField = filter_var($credentials['email'], FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+        
+        if (!Auth::attempt([
+            $loginField => $credentials['email'],
+            'password' => $credentials['password']
+        ])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid credentials',
+            ], 401);
         }
 
-        $user = User::where('email', $request->email)->firstOrFail();
-        $token = $user->createToken('token')->plainTextToken;
+        $user = Auth::user();
+        $user->load('userProfile');
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'Logged in successfully',
-            'user' => $user->load('userProfile'),
-            'token' => $token
+            'status' => 'success',
+            'message' => 'Login successful',
+            'user' => new UserResource($user),
+            'token' => $token,
         ]);
     }
 

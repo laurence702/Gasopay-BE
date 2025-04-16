@@ -10,8 +10,6 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->foreignId('branch_id')->nullable()->after('role')->constrained()->nullOnDelete();
-            // $table->dropColumn('name');
-            // $table->boolean('profile_verified')->default(false);
         });
     }
 
