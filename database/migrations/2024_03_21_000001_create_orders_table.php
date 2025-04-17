@@ -19,7 +19,7 @@ return new class extends Migration
 
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignUuid('payer_id')->constrained('users')->cascadeOnDelete()->comment('e.g rider, user');
+            $table->foreignUlid('payer_id')->constrained('users')->cascadeOnDelete()->comment('e.g rider, user');
             $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->integer('quantity');
