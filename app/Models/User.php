@@ -56,6 +56,9 @@ class User extends Authenticatable
 
         static::creating(function ($model) {  
             $model->id = (string) Str::ulid();
+            if ($model->role === RoleEnum::Rider) {
+                $model->profile_verified = 0;
+            }
         });  
     }
 

@@ -2,38 +2,37 @@
 
 namespace App\Http\Controllers\Api;
 
+use Exception;
+use App\Models\User;
 use App\Enums\RoleEnum;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\CreateAdminRequest;
+use App\Http\Resources\UserResource;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Http\Requests\CreateAdminRequest;
 use App\Http\Requests\RegisterRiderRequest;
-use App\Http\Resources\UserCollection;
-use App\Http\Resources\UserResource;
-use App\Models\User;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class UserController extends Controller
 {
     public function __construct()
     {
-        // Middleware moved to routes file
     }
 
     public function index(): AnonymousResourceCollection
     {
         $cacheKey = 'users:' . md5(request()->fullUrl());
-        
+
         return Cache::remember($cacheKey, 300, function () {
             $users = User::with(['branch', 'userProfile'])
                 ->latest()
                 ->paginate(10);
-            
+
             return UserResource::collection($users);
         });
     }
@@ -101,12 +100,12 @@ class UserController extends Controller
             return response()->json(['message' => 'Admin creation failed'], 500);
         }
     }
-    
+
 
     public function show(User $user): JsonResponse
     {
         $cacheKey = "user:{$user->id}";
-        
+
         $data = Cache::remember($cacheKey, 300, function () use ($user) {
             return new UserResource($user->load(['branch', 'userProfile']));
         });
@@ -117,12 +116,12 @@ class UserController extends Controller
     public function allUsers(): AnonymousResourceCollection
     {
         $cacheKey = 'all_users';
-        
+
         return Cache::remember($cacheKey, 300, function () {
             $users = User::with(['branch', 'userProfile'])
                 ->latest()
                 ->get();
-            
+
             return UserResource::collection($users);
         });
     }
@@ -153,7 +152,7 @@ class UserController extends Controller
     public function restore($id)
     {
         $user = User::withTrashed()->findOrFail($id);
-        
+
         if (!$user->trashed()) {
             return response()->json(['message' => 'User is not deleted'], 404);
         }
@@ -167,7 +166,7 @@ class UserController extends Controller
     public function forceDelete($id)
     {
         $user = User::withTrashed()->findOrFail($id);
-        
+
         if (!$user->trashed()) {
             return response()->json(['message' => 'User must be deleted first'], 400);
         }
@@ -176,5 +175,61 @@ class UserController extends Controller
         Cache::tags(['users'])->flush();
 
         return response()->json(['message' => 'User permanently deleted']);
+    }
+
+    /**
+     *
+     * @param User $rider
+     * @return JsonResponse
+     */
+    public function rider_verification(User $rider): JsonResponse
+    {
+        if ($rider->role !== RoleEnum::Rider) {
+            return $this->errorResponse('User is not a rider.', 400);
+        }
+
+        try {
+            if($rider->userProfile !== null) {
+                $rider->profile_verified = 1;
+                $rider->save();
+
+            $this->flushUserCache($rider->id);
+            Cache::tags(['users_list'])->flush();
+
+            $rider->refresh();
+
+            return $this->successResponse(new UserResource($rider), 'Verification Successful.', 200);
+            }
+        } catch (Exception $e) {
+            Log::error("Error verifying rider {$rider->id}: " . $e->getMessage());
+            return $this->errorResponse('Failed to update rider verification status.', 500);
+        }
+    }
+
+    /**
+     *
+     * @param string $userId
+     * @return void
+     */
+    private function flushUserCache(string $userId): void
+    {
+        Cache::forget("user_{$userId}");
+    }
+
+    /**
+     * Retrieve all users without pagination (for load testing).
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function indexUnpaginated(): JsonResponse
+    {
+        try {
+            $users = User::all(); 
+            return response()->json(UserResource::collection($users));
+        } catch (\Throwable $e) {
+            Log::error("Error fetching all unpaginated users: " . $e->getMessage());
+
+            return response()->json(['success' => false, 'message' => 'Failed to fetch users.'], 500);
+        }
     }
 }

@@ -88,7 +88,7 @@ class AuthController extends Controller
             'message' => 'Login successful',
             'user' => new UserResource($user),
             'token' => $token,
-        ]);
+        ],200);
     }
 
     public function loggedInUser(Request $request)

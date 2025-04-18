@@ -9,6 +9,7 @@ use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\PaymentHistoryController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\OrderController;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,15 +28,19 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
 Route::get('/me', [AuthController::class, 'loggedInUser'])->middleware('auth:sanctum')->name('user');
 
-// Protected routes
+
 Route::middleware(['auth:sanctum'])->group(function () {
-    // User routes with rate limiting
     Route::middleware(['throttle:60,1'])->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
-        Route::post('/users/{id}/restore', [UserController::class, 'restore']);
+        Route::patch('/users/{user}/verify-rider', [UserController::class, 'toggleRiderVerification'])
+            ->middleware('can:verify-rider')
+            ->name('users.rider_verification');
+
+        Route::get('/users/all-unpaginated', [UserController::class, 'indexUnpaginated'])
+            ->name('users.indexUnpaginated'); //Load testing route
     });
 
     // User routes with different rate limiting

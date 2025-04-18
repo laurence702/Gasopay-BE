@@ -6,20 +6,46 @@ use App\Enums\RoleEnum;
 use App\Enums\VehicleTypeEnum;
 use App\Models\User;
 use App\Models\Branch;
+use App\Models\UserProfile;
+use App\Models\VehicleType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 use Illuminate\Contracts\Auth\Authenticatable;
 use function Pest\Laravel\{getJson, postJson, putJson, deleteJson};
+use Laravel\Sanctum\Sanctum;
+use Illuminate\Support\Str;
 
 class UserControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected User $superAdmin;
+    protected User $admin; // Branch Admin
+    protected User $rider;
+    protected User $regularUser;
+    protected Branch $branch;
+
     protected function setUp(): void
     {
         parent::setUp();
         Cache::flush();
+
+
+        $this->superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
+        $this->branch = Branch::factory()->create();
+        $this->admin = User::factory()->create([
+            'role' => RoleEnum::Admin,
+            'branch_id' => $this->branch->id,
+        ]);
+        $this->rider = User::factory()->create([
+            'role' => RoleEnum::Rider, 
+            'branch_id' => $this->branch->id,
+            'profile_verified' => false
+        ]);
+        $this->regularUser = User::factory()->create(['role' => RoleEnum::Regular]);
+
+        UserProfile::factory()->for($this->rider)->create(); 
     }
 
     public function test_authenticated_user_can_list_users()
@@ -285,5 +311,92 @@ class UserControllerTest extends TestCase
                 'fullname' => 'John Doe',
                 'email' => 'john@example.com',
             ]);
+    }
+
+    /** @test */
+    public function super_admin_can_toggle_rider_verification(): void
+    {
+        Sanctum::actingAs($this->superAdmin);
+
+        $this->assertFalse($this->rider->profile_verified); // Check initial state
+
+        $response = $this->patchJson(route('users.toggle-verification', $this->rider->id));
+
+        $response->assertOk()
+                 ->assertJsonStructure(['success', 'message', 'data' => ['id', 'fullname', 'profile_verified']])
+                 ->assertJsonPath('data.profile_verified', true);
+
+        $this->rider->refresh();
+        $this->assertTrue($this->rider->profile_verified);
+
+        // Toggle back to unverified
+        $response = $this->patchJson(route('users.toggle-verification', $this->rider->id));
+        $response->assertOk()
+                 ->assertJsonPath('data.profile_verified', false);
+                 
+        $this->rider->refresh();
+        $this->assertFalse($this->rider->profile_verified);
+    }
+
+    /** @test */
+    public function admin_can_toggle_rider_verification(): void
+    {
+        Sanctum::actingAs($this->admin);
+
+        $this->assertFalse($this->rider->profile_verified);
+
+        $response = $this->patchJson(route('users.toggle-verification', $this->rider->id));
+
+        $response->assertOk()
+                 ->assertJsonPath('data.profile_verified', true);
+
+        $this->rider->refresh();
+        $this->assertTrue($this->rider->profile_verified);
+    }
+
+    /** @test */
+    public function regular_user_cannot_toggle_rider_verification(): void
+    {
+        Sanctum::actingAs($this->regularUser);
+
+        $response = $this->patchJson(route('users.toggle-verification', $this->rider->id));
+
+        $response->assertForbidden(); // Expecting 403 due to Gate
+        $this->assertFalse($this->rider->refresh()->profile_verified); // Ensure status didn't change
+    }
+
+    /** @test */
+    public function rider_cannot_toggle_own_verification(): void
+    {
+        Sanctum::actingAs($this->rider);
+
+        $response = $this->patchJson(route('users.toggle-verification', $this->rider->id));
+
+        $response->assertForbidden(); // Expecting 403 due to Gate
+        $this->assertFalse($this->rider->refresh()->profile_verified);
+    }
+
+    /** @test */
+    public function cannot_toggle_verification_for_non_rider(): void
+    {
+        Sanctum::actingAs($this->superAdmin);
+
+        // Target the regular user instead of the rider
+        $response = $this->patchJson(route('users.toggle-verification', $this->regularUser->id));
+
+        // Expecting 400 Bad Request as implemented in the controller
+        $response->assertStatus(400)
+                 ->assertJsonPath('message', 'User is not a rider.'); 
+    }
+
+    /** @test */
+    public function cannot_toggle_verification_for_non_existent_user(): void
+    {
+        Sanctum::actingAs($this->superAdmin);
+        $nonExistentId = (string) Str::ulid(); // Generate a valid but non-existent ID
+
+        $response = $this->patchJson(route('users.toggle-verification', $nonExistentId));
+
+        $response->assertNotFound(); // Expecting 404
     }
 } 
