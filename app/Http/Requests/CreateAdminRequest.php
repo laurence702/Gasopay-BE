@@ -26,7 +26,6 @@ class CreateAdminRequest extends FormRequest
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'required|string|max:20',
             'address' => 'nullable|string|max:255',
-            'role' => ['required', 'string', new Enum(RoleEnum::class)],
             'branch_id' => 'nullable|exists:branches,id',
         ];
     }

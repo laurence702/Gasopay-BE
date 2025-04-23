@@ -15,7 +15,6 @@ class UserProfileFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'phone' => $this->faker->phoneNumber(),
             'address' => $this->faker->address(),
             'vehicle_type' => $this->faker->randomElement(VehicleTypeEnum::cases())->value,
             'nin' => $this->faker->numerify('##########'),

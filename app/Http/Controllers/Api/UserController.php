@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use Exception;
 use App\Models\User;
 use App\Enums\RoleEnum;
+use App\Enums\ProfileVerificationStatusEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -12,14 +13,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\Rules\Enum as EnumRule;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Requests\CreateAdminRequest;
 use App\Http\Requests\RegisterRiderRequest;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use App\Http\Traits\ApiResponseTrait;
 
 class UserController extends Controller
 {
+    use ApiResponseTrait;
+
     public function __construct()
     {
     }
@@ -89,7 +94,7 @@ class UserController extends Controller
         try {
             $validated = $request->validated();
             $validated['password'] = Hash::make($validated['password']);
-            $validated['role'] = RoleEnum::Admin;
+            $validated['role'] = isset($validated['role']) ? $validated['role'] : RoleEnum::Admin;
 
             $user = User::create($validated);
             Cache::flush();
@@ -178,30 +183,48 @@ class UserController extends Controller
     }
 
     /**
+     * Update the verification status of a Rider.
      *
-     * @param User $rider
+     * @param Request $request
+     * @param User $user
      * @return JsonResponse
      */
-    public function rider_verification(User $rider): JsonResponse
+    public function updateVerificationStatus(Request $request, User $user): JsonResponse
     {
-        if ($rider->role !== RoleEnum::Rider) {
+        $validated = $request->validate([
+            'status' => ['required', new EnumRule(ProfileVerificationStatusEnum::class)]
+        ]);
+
+        if ($user->role !== RoleEnum::Rider) {
             return $this->errorResponse('User is not a rider.', 400);
         }
 
+        $newStatus = ProfileVerificationStatusEnum::from($validated['status']);
+
+        if ($newStatus === ProfileVerificationStatusEnum::VERIFIED && $user->userProfile === null) {
+            return $this->errorResponse('Cannot verify rider without a profile.', 400);
+        }
+
         try {
-            if($rider->userProfile !== null) {
-                $rider->profile_verified = 1;
-                $rider->save();
+            $user->verification_status = $newStatus;
+            $user->save();
 
-            $this->flushUserCache($rider->id);
-            Cache::tags(['users_list'])->flush();
+            $this->flushUserCache($user->id);
 
-            $rider->refresh();
-
-            return $this->successResponse(new UserResource($rider), 'Verification Successful.', 200);
+            // Only flush tags if the cache driver supports it
+            if (method_exists(Cache::getStore(), 'tags')) {
+                Cache::tags(['users_list'])->flush();
             }
+
+            $user->refresh()->load('branch', 'userProfile');
+
+            return $this->successResponse(
+                new UserResource($user),
+                'Rider status updated to ' . $newStatus->value . '.',
+                200
+            );
         } catch (Exception $e) {
-            Log::error("Error verifying rider {$rider->id}: " . $e->getMessage());
+            Log::error("Error updating verification status for rider {$user->id}: " . $e->getMessage());
             return $this->errorResponse('Failed to update rider verification status.', 500);
         }
     }

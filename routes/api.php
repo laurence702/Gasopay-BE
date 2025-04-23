@@ -35,12 +35,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
-        Route::patch('/users/{user}/verify-rider', [UserController::class, 'toggleRiderVerification'])
-            ->middleware('can:verify-rider')
-            ->name('users.rider_verification');
-
-        Route::get('/users/all-unpaginated', [UserController::class, 'indexUnpaginated'])
-            ->name('users.indexUnpaginated'); //Load testing route
+        Route::patch('/users/{user}/verification-status', [UserController::class, 'updateVerificationStatus'])
+            ->middleware('can:update-verification-status')
+            ->name('users.update_verification_status');
     });
 
     // User routes with different rate limiting

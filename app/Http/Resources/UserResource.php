@@ -20,6 +20,7 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'role' => $this->role,
+            'verification_status' => $this->verification_status,
             'branch_id' => $this->branch_id,
             'branch' => new BranchResource($this->whenLoaded('branch')),
             'user_profile' => new UserProfileResource($this->whenLoaded('userProfile')),

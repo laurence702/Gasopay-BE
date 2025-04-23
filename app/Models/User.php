@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\RoleEnum;
+use App\Enums\ProfileVerificationStatusEnum;
 use App\Traits\Cacheable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Support\Str;
@@ -30,7 +31,7 @@ class User extends Authenticatable
         'password',
         'role',
         'branch_id',
-        'profile_verified',
+        'verification_status',
     ];
 
     /**
@@ -56,9 +57,6 @@ class User extends Authenticatable
 
         static::creating(function ($model) {  
             $model->id = (string) Str::ulid();
-            if ($model->role === RoleEnum::Rider) {
-                $model->profile_verified = 0;
-            }
         });  
     }
 
@@ -71,6 +69,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'role' => RoleEnum::class,
+        'verification_status' => ProfileVerificationStatusEnum::class,
     ];
 
     /**
