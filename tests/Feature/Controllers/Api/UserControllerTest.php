@@ -15,6 +15,8 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use function Pest\Laravel\{getJson, postJson, putJson, deleteJson};
 use Laravel\Sanctum\Sanctum;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
+use App\Enums\ProfileVerificationStatusEnum;
 
 class UserControllerTest extends TestCase
 {
@@ -41,7 +43,7 @@ class UserControllerTest extends TestCase
         $this->rider = User::factory()->create([
             'role' => RoleEnum::Rider, 
             'branch_id' => $this->branch->id,
-            'profile_verified' => false
+            'verification_status' => ProfileVerificationStatusEnum::PENDING
         ]);
         $this->regularUser = User::factory()->create(['role' => RoleEnum::Regular]);
 
@@ -89,11 +91,13 @@ class UserControllerTest extends TestCase
             'phone' => '1234567890',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'role' => RoleEnum::Rider->value,
             'address' => '123 Test St',
             'vehicle_type' => VehicleTypeEnum::Car->value,
             'nin' => '1234567890',
             'guarantors_name' => 'Test Guarantor',
+            'guarantors_address' => '456 Guarantor Ave',
+            'guarantors_phone' => '5551234567',
+            'profilePicUrl' => 'http://example.com/pic.jpg',
         ];
 
         $response = $this->postJson('/api/register-rider', $userData);
@@ -214,14 +218,13 @@ class UserControllerTest extends TestCase
 
     public function test_user_can_be_restored()
     {
-        /** @var Authenticatable $admin */
         $admin = User::factory()->create(['role' => RoleEnum::Admin]);
         $this->actingAs($admin);
 
-        $targetUser = User::factory()->create();
-        $targetUser->delete();
+        // Create a trashed user directly using the factory state
+        $trashedUser = User::factory()->trashed()->create();
 
-        $response = $this->postJson("/api/users/{$targetUser->id}/restore");
+        $response = $this->postJson("/api/users/{$trashedUser->id}/restore"); 
 
         $response->assertOk()
             ->assertJson([
@@ -229,21 +232,20 @@ class UserControllerTest extends TestCase
             ]);
 
         $this->assertDatabaseHas('users', [
-            'id' => $targetUser->id,
+            'id' => $trashedUser->id,
             'deleted_at' => null,
         ]);
     }
 
     public function test_user_can_be_force_deleted()
     {
-        /** @var Authenticatable $admin */
         $admin = User::factory()->create(['role' => RoleEnum::Admin]);
         $this->actingAs($admin);
 
-        $targetUser = User::factory()->create();
-        $targetUser->delete();
+         // Create a trashed user directly using the factory state
+        $trashedUser = User::factory()->trashed()->create();
 
-        $response = $this->deleteJson("/api/users/{$targetUser->id}/force");
+        $response = $this->deleteJson("/api/users/{$trashedUser->id}/force"); 
 
         $response->assertOk()
             ->assertJson([
@@ -251,7 +253,7 @@ class UserControllerTest extends TestCase
             ]);
 
         $this->assertDatabaseMissing('users', [
-            'id' => $targetUser->id,
+            'id' => $trashedUser->id,
         ]);
     }
 
@@ -313,90 +315,224 @@ class UserControllerTest extends TestCase
             ]);
     }
 
-    /** @test */
-    public function super_admin_can_toggle_rider_verification(): void
+    // ======================================
+    // Rider Verification Status Tests
+    // ======================================
+
+    public function test_super_admin_can_update_rider_verification_status()
     {
-        Sanctum::actingAs($this->superAdmin);
+        $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
+        $rider = User::factory()->hasUserProfile()->create(['role' => RoleEnum::Rider]);
 
-        $this->assertFalse($this->rider->profile_verified); // Check initial state
+        Sanctum::actingAs($superAdmin);
 
-        $response = $this->patchJson(route('users.toggle-verification', $this->rider->id));
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $rider->id,
+            'status' => ProfileVerificationStatusEnum::VERIFIED->value,
+        ]);
 
         $response->assertOk()
-                 ->assertJsonStructure(['success', 'message', 'data' => ['id', 'fullname', 'profile_verified']])
-                 ->assertJsonPath('data.profile_verified', true);
+            ->assertJsonStructure(['status', 'message', 'data' => ['id', 'verification_status']])
+            ->assertJsonPath('data.verification_status', ProfileVerificationStatusEnum::VERIFIED->value);
 
-        $this->rider->refresh();
-        $this->assertTrue($this->rider->profile_verified);
-
-        // Toggle back to unverified
-        $response = $this->patchJson(route('users.toggle-verification', $this->rider->id));
-        $response->assertOk()
-                 ->assertJsonPath('data.profile_verified', false);
-                 
-        $this->rider->refresh();
-        $this->assertFalse($this->rider->profile_verified);
+        $this->assertDatabaseHas('users', [
+            'id' => $rider->id,
+            'verification_status' => ProfileVerificationStatusEnum::VERIFIED->value,
+        ]);
     }
 
-    /** @test */
-    public function admin_can_toggle_rider_verification(): void
+    public function test_admin_can_update_rider_verification_status()
     {
-        Sanctum::actingAs($this->admin);
+        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+        $rider = User::factory()->hasUserProfile()->create(['role' => RoleEnum::Rider]);
 
-        $this->assertFalse($this->rider->profile_verified);
+        Sanctum::actingAs($admin);
 
-        $response = $this->patchJson(route('users.toggle-verification', $this->rider->id));
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $rider->id,
+            'status' => ProfileVerificationStatusEnum::REJECTED->value,
+        ]);
 
         $response->assertOk()
-                 ->assertJsonPath('data.profile_verified', true);
+            ->assertJsonPath('data.verification_status', ProfileVerificationStatusEnum::REJECTED->value);
 
-        $this->rider->refresh();
-        $this->assertTrue($this->rider->profile_verified);
+        $this->assertDatabaseHas('users', [
+            'id' => $rider->id,
+            'verification_status' => ProfileVerificationStatusEnum::REJECTED->value,
+        ]);
     }
 
-    /** @test */
-    public function regular_user_cannot_toggle_rider_verification(): void
+    public function test_regular_user_cannot_update_rider_verification_status()
     {
-        Sanctum::actingAs($this->regularUser);
+        $regularUser = User::factory()->create(['role' => RoleEnum::Regular]);
+        $rider = User::factory()->hasUserProfile()->create(['role' => RoleEnum::Rider]);
 
-        $response = $this->patchJson(route('users.toggle-verification', $this->rider->id));
+        Sanctum::actingAs($regularUser);
 
-        $response->assertForbidden(); // Expecting 403 due to Gate
-        $this->assertFalse($this->rider->refresh()->profile_verified); // Ensure status didn't change
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $rider->id,
+            'status' => ProfileVerificationStatusEnum::VERIFIED->value,
+        ]);
+
+        $response->assertForbidden(); // Expect 403 due to CheckAdminOrSuperAdmin middleware
     }
 
-    /** @test */
-    public function rider_cannot_toggle_own_verification(): void
+    public function test_cannot_update_status_for_non_rider()
     {
-        Sanctum::actingAs($this->rider);
+        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+        $nonRider = User::factory()->create(['role' => RoleEnum::Regular]); // Not a rider
 
-        $response = $this->patchJson(route('users.toggle-verification', $this->rider->id));
+        Sanctum::actingAs($admin);
 
-        $response->assertForbidden(); // Expecting 403 due to Gate
-        $this->assertFalse($this->rider->refresh()->profile_verified);
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $nonRider->id,
+            'status' => ProfileVerificationStatusEnum::VERIFIED->value,
+        ]);
+
+        $response->assertStatus(400) // Bad request
+            ->assertJsonPath('message', 'User is not a rider.');
     }
 
-    /** @test */
-    public function cannot_toggle_verification_for_non_rider(): void
+    public function test_cannot_verify_rider_without_profile()
     {
-        Sanctum::actingAs($this->superAdmin);
+        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+        // Create rider without calling hasUserProfile()
+        $riderWithoutProfile = User::factory()->create(['role' => RoleEnum::Rider]);
 
-        // Target the regular user instead of the rider
-        $response = $this->patchJson(route('users.toggle-verification', $this->regularUser->id));
+        Sanctum::actingAs($admin);
 
-        // Expecting 400 Bad Request as implemented in the controller
-        $response->assertStatus(400)
-                 ->assertJsonPath('message', 'User is not a rider.'); 
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $riderWithoutProfile->id,
+            'status' => ProfileVerificationStatusEnum::VERIFIED->value,
+        ]);
+
+        $response->assertStatus(400) // Bad request
+             ->assertJsonPath('message', 'Cannot verify rider without a profile.');
     }
 
-    /** @test */
-    public function cannot_toggle_verification_for_non_existent_user(): void
+    public function test_update_verification_status_validation_fails()
     {
-        Sanctum::actingAs($this->superAdmin);
-        $nonExistentId = (string) Str::ulid(); // Generate a valid but non-existent ID
+        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+        $rider = User::factory()->hasUserProfile()->create(['role' => RoleEnum::Rider]);
 
-        $response = $this->patchJson(route('users.toggle-verification', $nonExistentId));
+        Sanctum::actingAs($admin);
 
-        $response->assertNotFound(); // Expecting 404
+        // Missing status
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $rider->id, 
+        ]);
+        $response->assertStatus(422)->assertJsonValidationErrors('status');
+
+        // Invalid status
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $rider->id, 
+            'status' => 'invalid_status'
+        ]);
+        $response->assertStatus(422)->assertJsonValidationErrors('status');
+
+        // Missing rider_id
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'status' => ProfileVerificationStatusEnum::VERIFIED->value,
+        ]);
+        $response->assertStatus(422)->assertJsonValidationErrors('rider_id');
+    }
+
+    // ======================================
+    // Ban User Tests
+    // ======================================
+
+    public function test_super_admin_can_ban_user()
+    {
+        $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
+        $userToBan = User::factory()->create(['role' => RoleEnum::Regular]);
+        Sanctum::actingAs($superAdmin);
+
+        $response = $this->postJson(route('users.ban', ['user' => $userToBan->id]));
+
+        $response->assertOk()
+                 ->assertJsonPath('message', 'User banned successfully.')
+                 ->assertJsonPath('data.id', $userToBan->id)
+                 ->assertJsonPath('data.banned_at', fn ($bannedAt) => $bannedAt !== null);
+
+        $this->assertNotNull($userToBan->fresh()->banned_at);
+    }
+
+    public function test_admin_can_ban_user()
+    {
+        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+        $userToBan = User::factory()->create(['role' => RoleEnum::Rider]);
+        Sanctum::actingAs($admin);
+
+        $response = $this->postJson(route('users.ban', ['user' => $userToBan->id]));
+
+        $response->assertOk();
+        $this->assertNotNull($userToBan->fresh()->banned_at);
+    }
+
+    public function test_cannot_ban_super_admin()
+    {
+        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+        $superAdminToBan = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
+        Sanctum::actingAs($admin);
+
+        $response = $this->postJson(route('users.ban', ['user' => $superAdminToBan->id]));
+
+        $response->assertForbidden() // 403
+                 ->assertJsonPath('message', 'Cannot ban a Super Admin.');
+        $this->assertNull($superAdminToBan->fresh()->banned_at);
+    }
+
+    public function test_cannot_ban_self()
+    {
+        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+        Sanctum::actingAs($admin);
+
+        $response = $this->postJson(route('users.ban', ['user' => $admin->id]));
+
+        $response->assertStatus(400) // Bad Request
+                 ->assertJsonPath('message', 'You cannot ban yourself.');
+        $this->assertNull($admin->fresh()->banned_at);
+    }
+
+    public function test_regular_user_cannot_ban_user()
+    {
+        $regularUser = User::factory()->create(['role' => RoleEnum::Regular]);
+        $userToBan = User::factory()->create(['role' => RoleEnum::Rider]);
+        Sanctum::actingAs($regularUser);
+
+        $response = $this->postJson(route('users.ban', ['user' => $userToBan->id]));
+
+        $response->assertForbidden(); // Expect 403 due to CheckAdminOrSuperAdmin middleware
+        $this->assertNull($userToBan->fresh()->banned_at);
+    }
+
+    public function test_cannot_ban_already_banned_user()
+    {
+        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+        $userToBan = User::factory()->create(['role' => RoleEnum::Regular, 'banned_at' => now()]);
+        Sanctum::actingAs($admin);
+
+        $response = $this->postJson(route('users.ban', ['user' => $userToBan->id]));
+
+        $response->assertStatus(400) // Bad Request
+                 ->assertJsonPath('message', 'User is already banned.');
+    }
+
+    public function test_banned_user_cannot_login()
+    {
+        $bannedUser = User::factory()->create([
+            'email' => 'banned@example.com',
+            'password' => Hash::make('password123'),
+            'role' => RoleEnum::Regular,
+            'banned_at' => now()
+        ]);
+
+        $response = $this->postJson(route('login'), [
+            'login_identifier' => 'banned@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertForbidden() // 403 as implemented in AuthController
+            ->assertJsonPath('message', 'Your account has been suspended.');
     }
 } 

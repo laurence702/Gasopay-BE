@@ -71,6 +71,7 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'json.response' => \App\Http\Middleware\ForceJsonResponse::class,
         'superadmin' => \App\Http\Middleware\SuperAdmin::class,
+        'role.admin_or_superadmin' => \App\Http\Middleware\CheckAdminOrSuperAdmin::class,
     ];
 
     /**

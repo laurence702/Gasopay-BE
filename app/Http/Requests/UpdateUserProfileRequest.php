@@ -29,6 +29,8 @@ class UpdateUserProfileRequest extends FormRequest
             'vehicle_type' => ['sometimes', new Enum(VehicleTypeEnum::class)],
             'nin' => ['sometimes', 'string', 'max:20'],
             'guarantors_name' => ['sometimes', 'string', 'max:255'],
+            'guarantors_address' => ['sometimes', 'string', 'max:255'],
+            'guarantors_phone' => ['sometimes', 'string', 'max:20'],
             'photo' => ['nullable', 'image', 'max:2048'],
         ];
     }

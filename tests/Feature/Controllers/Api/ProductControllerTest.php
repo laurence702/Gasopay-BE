@@ -36,13 +36,12 @@ test('authenticated user can list products', function () {
 });
 
 test('super admin user can create a product', function () {
-    $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
-    Sanctum::actingAs($superAdmin);
-
+    Sanctum::actingAs(User::factory()->create(['role' => RoleEnum::SuperAdmin]));
     $productData = [
         'name' => 'Test Product',
+        'description' => 'A test product description',
         'unit' => 'kg',
-        'price' => 100.00
+        'price' => 100
     ];
 
     $response = postJson('/api/products', $productData);
@@ -82,16 +81,19 @@ test('any authenticated user can view a specific product', function () {
 });
 
 test('super_admin can update a product', function () {
-    $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
-    Sanctum::actingAs($superAdmin);
+    $admin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
+    Sanctum::actingAs($admin);
 
     $product = Product::factory()->create();
-    $updateData = [
+
+    $updatedData = [
         'name' => 'Updated Product',
-        'unit' => 'liter'
+        'description' => 'An updated description',
+        'unit' => 'liter',
+        'price' => 250.50
     ];
 
-    $response = putJson("/api/products/{$product->id}", $updateData);
+    $response = putJson("/api/products/{$product->id}", $updatedData);
 
     $response->assertOk()
         ->assertJsonStructure([

@@ -13,6 +13,7 @@ class ProductFactory extends Factory
     {
         return [
             'name' => $this->faker->word(),
+            'description' => $this->faker->sentence(),
             'unit' => $this->faker->randomElement(['kg', 'liter', 'piece']),
             'price' => $this->faker->randomFloat(2, 10, 1000),
         ];

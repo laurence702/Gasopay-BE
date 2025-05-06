@@ -32,6 +32,7 @@ class User extends Authenticatable
         'role',
         'branch_id',
         'verification_status',
+        'banned_at',
     ];
 
     /**
@@ -70,6 +71,7 @@ class User extends Authenticatable
         'password' => 'hashed',
         'role' => RoleEnum::class,
         'verification_status' => ProfileVerificationStatusEnum::class,
+        'banned_at' => 'datetime',
     ];
 
     /**

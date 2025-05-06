@@ -7,6 +7,8 @@ use App\Models\User;
 use App\Models\UserProfile;
 use App\Enums\VehicleTypeEnum;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 class UserProfileControllerTest extends TestCase
 {
@@ -19,22 +21,29 @@ class UserProfileControllerTest extends TestCase
     {
         parent::setUp();
 
+        Storage::fake('public');
+
         $this->user = User::factory()->create();
         
         $this->profileData = [
             'user_id' => $this->user->id,
-            'vehicle_type' => VehicleTypeEnum::Car,
+            'vehicle_type' => VehicleTypeEnum::Car->value,
             'phone' => '1234567890',
             'address' => '123 Test Street',
             'nin' => 'NIN123456',
             'guarantors_name' => 'John Doe',
-            'profile_pic_url' => 'photo.jpg',
+            'guarantors_address' => '111 Guarantor Ln',
+            'guarantors_phone' => '5559876543',
+            'profile_pic_url' => UploadedFile::fake()->image('avatar.jpg'),
         ];
     }
 
     public function test_can_list_user_profiles(): void
     {
-        UserProfile::create($this->profileData);
+        $listData = $this->profileData;
+        unset($listData['profile_pic_url']);
+        $listData['profile_pic_url'] = 'http://example.com/photo.jpg';
+        UserProfile::create($listData);
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/user-profiles');
@@ -53,13 +62,13 @@ class UserProfileControllerTest extends TestCase
                             'role',
                             'branch_id',
                         ],
-                        'vehicle_type',
                         'address',
+                        'phone',
+                        'vehicle_type',
                         'nin',
                         'guarantors_name',
                         'guarantors_address',
-                        
-                        
+                        'guarantors_phone',
                         'profile_pic_url',
                         'created_at',
                         'updated_at',
@@ -117,26 +126,30 @@ class UserProfileControllerTest extends TestCase
                         'role',
                         'branch_id',
                     ],
-                    'vehicle_type',
-
-                    'phone',
                     'address',
+                    'phone',
+                    'vehicle_type',
                     'nin',
                     'guarantors_name',
                     'guarantors_address',
-                    
-                    
+                    'guarantors_phone',
+                    'profile_pic_url',
                     'created_at',
                     'updated_at',
                 ],
             ]);
 
-        $this->assertDatabaseHas('user_profiles', $this->profileData);
+        $dbData = $this->profileData;
+        unset($dbData['profile_pic_url']);
+        $this->assertDatabaseHas('user_profiles', $dbData);
     }
 
     public function test_can_show_user_profile(): void
     {
-        $profile = UserProfile::create($this->profileData);
+        $showData = $this->profileData;
+        unset($showData['profile_pic_url']);
+        $showData['profile_pic_url'] = 'http://example.com/photo.jpg';
+        $profile = UserProfile::create($showData);
 
         $response = $this->actingAs($this->user)
             ->getJson("/api/user-profiles/{$profile->id}");
@@ -154,14 +167,14 @@ class UserProfileControllerTest extends TestCase
                         'role',
                         'branch_id',
                     ],
-                    'vehicle_type',
-                    'phone',
                     'address',
+                    'phone',
+                    'vehicle_type',
                     'nin',
                     'guarantors_name',
                     'guarantors_address',
-                    
-                    
+                    'guarantors_phone',
+                    'profile_pic_url',
                     'created_at',
                     'updated_at',
                 ],
@@ -170,11 +183,15 @@ class UserProfileControllerTest extends TestCase
 
     public function test_can_update_user_profile(): void
     {
-        $profile = UserProfile::create($this->profileData);
+        $initialData = $this->profileData;
+        unset($initialData['profile_pic_url']);
+        $initialData['profile_pic_url'] = 'http://example.com/photo.jpg';
+        $profile = UserProfile::create($initialData);
 
         $updatedData = [
             'phone' => '0987654321',
             'address' => '456 Updated Street',
+            'profile_pic_url' => UploadedFile::fake()->image('new_avatar.png'),
         ];
 
         $response = $this->actingAs($this->user)
@@ -193,9 +210,9 @@ class UserProfileControllerTest extends TestCase
                         'role',
                         'branch_id',
                     ],
-                    'vehicle_type',
-                    'phone',
                     'address',
+                    'phone',
+                    'vehicle_type',
                     'nin',
                     'guarantors_name',
                     'guarantors_address',
@@ -206,11 +223,12 @@ class UserProfileControllerTest extends TestCase
                 ],
             ]);
 
-        $this->assertDatabaseHas('user_profiles', [
+        $dbCheckData = [
             'id' => $profile->id,
             'phone' => '0987654321',
             'address' => '456 Updated Street',
-        ]);
+        ];
+        $this->assertDatabaseHas('user_profiles', $dbCheckData);
     }
 
     public function test_can_delete_user_profile(): void

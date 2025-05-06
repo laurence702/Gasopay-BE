@@ -44,10 +44,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // User routes with different rate limiting
     Route::middleware(['throttle:10,1'])->group(function () {
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-        Route::delete('/users/{id}/force', [UserController::class, 'forceDelete']);
+        Route::post('/users/{id}/restore', [UserController::class, 'restore'])->withTrashed()->name('users.restore');
+        Route::delete('/users/{id}/force', [UserController::class, 'forceDelete'])->withTrashed()->name('users.forceDelete');
+        Route::post('/users/{user}/ban', [UserController::class, 'ban'])
+            ->middleware(\App\Http\Middleware\CheckAdminOrSuperAdmin::class)
+            ->name('users.ban');
     });
 
-    // Apply the new middleware for rider verification
     Route::put('/riders/verification', [UserController::class, 'updateVerificationStatus'])
         ->middleware(\App\Http\Middleware\CheckAdminOrSuperAdmin::class)
         ->name('users.update_verification_status');

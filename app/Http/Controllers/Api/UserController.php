@@ -149,6 +149,39 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Ban a specific user.
+     *
+     * @param Request $request
+     * @param User $user The user to ban (via route model binding)
+     * @return JsonResponse
+     */
+    public function ban(Request $request, User $user): JsonResponse
+    {
+        if ($request->user()->id === $user->id) {
+            return $this->errorResponse('You cannot ban yourself.', 400);
+        }
+
+        if ($user->role === RoleEnum::SuperAdmin) {
+            return $this->errorResponse('Cannot ban a Super Admin.', 403); 
+        }
+
+        // Check if already banned
+        if ($user->banned_at !== null) {
+            return $this->errorResponse('User is already banned.', 400);
+        }
+
+        $user->banned_at = now();
+        $user->save();
+
+        //Log out the user
+        $user->tokens()->delete(); 
+
+        $this->flushUserCache($user->id);
+
+        return $this->successResponse(new UserResource($user->refresh()), 'User banned successfully.');
+    }
+
     public function destroy(User $user)
     {
         if ($user->trashed()) {
@@ -156,7 +189,8 @@ class UserController extends Controller
         }
 
         $user->delete();
-        Cache::tags(['users'])->flush();
+        // Cache::tags(['users'])->flush(); // Remove or comment out if using file cache
+        Cache::flush(); // Use broad flush or specific forget if needed
 
         return response()->json(['message' => 'User deleted successfully']);
     }
@@ -165,12 +199,11 @@ class UserController extends Controller
     {
         $user = User::withTrashed()->findOrFail($id);
 
-        if (!$user->trashed()) {
-            return response()->json(['message' => 'User is not deleted'], 404);
+        if (!$user->trashed()) { // Check if user is actually trashed
+            return response()->json(['message' => 'User is not deleted'], 400);
         }
 
         $user->restore();
-        Cache::tags(['users'])->flush();
 
         return response()->json(['message' => 'User restored successfully']);
     }
@@ -179,12 +212,11 @@ class UserController extends Controller
     {
         $user = User::withTrashed()->findOrFail($id);
 
-        if (!$user->trashed()) {
-            return response()->json(['message' => 'User must be deleted first'], 400);
+        if (!$user->trashed()) { // Check if user is actually trashed
+            return response()->json(['message' => 'User must be soft-deleted first'], 400);
         }
 
         $user->forceDelete();
-        Cache::tags(['users'])->flush();
 
         return response()->json(['message' => 'User permanently deleted']);
     }

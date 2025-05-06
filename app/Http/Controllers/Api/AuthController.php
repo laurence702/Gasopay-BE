@@ -86,6 +86,16 @@ class AuthController extends Controller
 
         /** @var \App\Models\User $user */
         $user = Auth::user();
+
+        // Check if the user is banned BEFORE issuing a token
+        if ($user->banned_at !== null) {
+            Auth::logout(); // Log the user out as Auth::attempt succeeded
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Your account has been suspended.', // User-friendly message
+            ], 403); // Use 403 Forbidden
+        }
+
         $user->load('userProfile');
         $token = $user->createToken('auth_token')->plainTextToken;
 

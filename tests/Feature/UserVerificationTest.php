@@ -45,7 +45,9 @@ class UserVerificationTest extends TestCase
 
     public function test_admin_can_verify_rider(): void
     {
-        $response = $this->patchJson(route('users.update_verification_status', $this->rider), [
+        Sanctum::actingAs($this->admin);
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $this->rider->id,
             'status' => ProfileVerificationStatusEnum::VERIFIED->value,
         ]);
 
@@ -59,7 +61,9 @@ class UserVerificationTest extends TestCase
 
     public function test_admin_can_reject_rider(): void
     {
-        $response = $this->patchJson(route('users.update_verification_status', $this->rider), [
+        Sanctum::actingAs($this->admin);
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $this->rider->id,
             'status' => ProfileVerificationStatusEnum::REJECTED->value,
         ]);
 
@@ -73,10 +77,9 @@ class UserVerificationTest extends TestCase
 
     public function test_admin_can_set_rider_status_to_pending(): void
     {
-        $this->rider->verification_status = ProfileVerificationStatusEnum::VERIFIED;
-        $this->rider->save();
-
-        $response = $this->patchJson(route('users.update_verification_status', $this->rider), [
+        Sanctum::actingAs($this->admin);
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $this->rider->id,
             'status' => ProfileVerificationStatusEnum::PENDING->value,
         ]);
 
@@ -90,7 +93,9 @@ class UserVerificationTest extends TestCase
 
     public function test_cannot_update_status_for_non_rider_user(): void
     {
-        $response = $this->patchJson(route('users.update_verification_status', $this->nonRider), [
+        Sanctum::actingAs($this->admin);
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $this->nonRider->id,
             'status' => ProfileVerificationStatusEnum::VERIFIED->value,
         ]);
 
@@ -100,9 +105,10 @@ class UserVerificationTest extends TestCase
 
     public function test_cannot_verify_rider_without_profile(): void
     {
-        $riderWithoutProfile = User::factory()->create(['role' => RoleEnum::Rider, 'verification_status' => ProfileVerificationStatusEnum::PENDING]);
-
-        $response = $this->patchJson(route('users.update_verification_status', $riderWithoutProfile), [
+        $riderWithoutProfile = User::factory()->create(['role' => RoleEnum::Rider]);
+        Sanctum::actingAs($this->admin);
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $riderWithoutProfile->id,
             'status' => ProfileVerificationStatusEnum::VERIFIED->value,
         ]);
 
@@ -112,7 +118,9 @@ class UserVerificationTest extends TestCase
 
     public function test_validation_fails_with_invalid_status(): void
     {
-        $response = $this->patchJson(route('users.update_verification_status', $this->rider), [
+        Sanctum::actingAs($this->admin);
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $this->rider->id,
             'status' => 'invalid_status_value',
         ]);
 
@@ -121,19 +129,22 @@ class UserVerificationTest extends TestCase
 
     public function test_validation_fails_without_status(): void
     {
-        $response = $this->patchJson(route('users.update_verification_status', $this->rider), []);
+        Sanctum::actingAs($this->admin);
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $this->rider->id,
+        ]);
 
         $response->assertStatus(422)->assertJsonValidationErrors('status');
     }
 
     public function test_non_admin_cannot_update_rider_status(): void
     {
-        Sanctum::actingAs($this->nonRider);
-
-        $response = $this->patchJson(route('users.update_verification_status', $this->rider), [
+        $regularUser = User::factory()->create(['role' => RoleEnum::Regular]);
+        Sanctum::actingAs($regularUser);
+        $response = $this->putJson(route('users.update_verification_status'), [
+            'rider_id' => $this->rider->id,
             'status' => ProfileVerificationStatusEnum::VERIFIED->value,
         ]);
-
         $response->assertStatus(403); // Forbidden
     }
 } 
