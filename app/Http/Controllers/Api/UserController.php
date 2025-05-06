@@ -82,16 +82,16 @@ class UserController extends Controller
                     'profile_pic_url' => $validated['profilePicUrl'],
                 ]);
 
-                return $user; // Return the created user from the transaction closure
+                return $user;
             });
 
-            Cache::flush(); // Flush cache after successful transaction
+            Cache::flush();
 
             return response()->json([
-                'data' => new UserResource($user->load(['branch', 'userProfile'])) // Load relations after transaction
+                'data' => new UserResource($user->load(['branch', 'userProfile']))
             ], 201);
 
-        } catch (\Throwable $e) { // Catch Throwable for broader error handling (including DB errors)
+        } catch (\Throwable $e) {
             Log::error('Rider registration failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json(['message' => 'Rider registration failed due to an internal error.'], 500);
         }

@@ -42,7 +42,7 @@ return new class extends Migration
             $table->id();
             $table->string('name')->nullable();
             $table->string('location');
-            $table->uuid('branch_admin')->constrained('users')->cascadeOnDelete();
+            $table->foreignUlid('branch_admin')->constrained('users')->cascadeOnDelete();
             $table->string('branch_phone')->nullable();
             $table->timestamps();
         });
