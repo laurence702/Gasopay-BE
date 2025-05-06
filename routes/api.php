@@ -1,15 +1,17 @@
 <?php
 
+use Illuminate\Http\Request;
+use App\Http\Middleware\SuperAdmin;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\PaymentHistoryController;
 use App\Http\Controllers\Api\UserProfileController;
-use App\Http\Controllers\Api\OrderController;
-use Illuminate\Http\Request;
+use App\Http\Middleware\BranchAdmin;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,16 +30,15 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
 Route::get('/me', [AuthController::class, 'loggedInUser'])->middleware('auth:sanctum')->name('user');
 
+Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::middleware(['throttle:60,1'])->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
-        Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
-        Route::patch('/users/{user}/verification-status', [UserController::class, 'updateVerificationStatus'])
-            ->middleware('can:update-verification-status')
-            ->name('users.update_verification_status');
+      //  Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
+       
     });
 
     // User routes with different rate limiting
@@ -45,6 +46,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
         Route::delete('/users/{id}/force', [UserController::class, 'forceDelete']);
     });
+
+    // Apply the new middleware for rider verification
+    Route::put('/riders/verification', [UserController::class, 'updateVerificationStatus'])
+        ->middleware(\App\Http\Middleware\CheckAdminOrSuperAdmin::class)
+        ->name('users.update_verification_status');
 
     // Product routes
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
@@ -67,9 +73,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
 });
+Route::middleware(['auth:sanctum'])->group(function () {
+    // Order management routes
+    Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+    Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
+    Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
+});
 
 // Super Admin routes
-Route::middleware(['auth:sanctum', \App\Http\Middleware\SuperAdmin::class])->group(function () {
+Route::middleware(['auth:sanctum', \App\Http\Middleware\SuperAdmin::class, ])->group(function () {
     Route::post('/create-admin', [UserController::class, 'createAdmin'])->name('users.createAdmin');
     // Branch management routes
     Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
@@ -94,9 +106,4 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SuperAdmin::class])->gro
     Route::post('payment-histories/{paymentHistory}/proof', [PaymentProofController::class, 'submit']);
     Route::post('payment-proofs/{paymentProof}/approve', [PaymentProofController::class, 'approve']);
     Route::post('payment-proofs/{paymentProof}/reject', [PaymentProofController::class, 'reject']);
-
-    // Order management routes
-    Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
-    Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
-    Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
 });

@@ -36,7 +36,6 @@ class RegisterUserRequest extends FormRequest
             'nin' => ['required_if:role,' . RoleEnum::Rider->value, 'string'],
             'guarantors_name' => ['required_if:role,' . RoleEnum::Rider->value, 'string'],
             'photo' => 'nullable|image|max:2048',
-            'barcode' => 'nullable|string|max:255',
         ];
     }
 

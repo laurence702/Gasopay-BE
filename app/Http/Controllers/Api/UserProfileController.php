@@ -34,7 +34,6 @@ class UserProfileController extends Controller
             'nin' => 'nullable|string',
             'guarantors_name' => 'nullable|string',
             'photo' => 'nullable|string',
-            'barcode' => 'nullable|string',
         ]);
 
         $profile = UserProfile::create($validated);
@@ -61,7 +60,6 @@ class UserProfileController extends Controller
             'nin' => 'nullable|string',
             'guarantors_name' => 'nullable|string',
             'photo' => 'nullable|string',
-            'barcode' => 'nullable|string',
         ]);
 
         $userProfile->update($validated);

@@ -27,8 +27,7 @@ class StoreUserProfileRequest extends FormRequest
             'vehicle_type' => ['sometimes', new Enum(VehicleTypeEnum::class)],
             'nin' => ['required', 'string', 'max:20'],
             'guarantors_name' => ['required', 'string', 'max:255'],
-            'photo' => ['nullable', 'image', 'max:2048'],
-            'barcode' => ['nullable', 'string', 'max:255'],
+            'profile_pic_url' => ['nullable', 'image', 'max:2048'],
         ];
     }
 }

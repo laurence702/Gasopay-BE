@@ -19,8 +19,9 @@ class UserProfileFactory extends Factory
             'vehicle_type' => $this->faker->randomElement(VehicleTypeEnum::cases())->value,
             'nin' => $this->faker->numerify('##########'),
             'guarantors_name' => $this->faker->name(),
-            'photo' => $this->faker->imageUrl(),
-            'barcode' => $this->faker->uuid(),
+            'profile_pic_url' => $this->faker->imageUrl(),
+            'guarantors_address' => $this->faker->address(),
+            'guarantors_phone' => $this->faker->phoneNumber(),
         ];
     }
 } 

@@ -20,6 +20,7 @@ use App\Http\Requests\CreateAdminRequest;
 use App\Http\Requests\RegisterRiderRequest;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use App\Http\Traits\ApiResponseTrait;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -62,30 +63,37 @@ class UserController extends Controller
 
     public function register_rider(RegisterRiderRequest $request): JsonResponse
     {
+        $validated = $request->validated();
+        $validated['password'] = Hash::make($validated['password']);
+        $validated['role'] = RoleEnum::Rider;
+
         try {
-            $validated = $request->validated();
-            $validated['password'] = Hash::make($validated['password']);
-            $validated['role'] = RoleEnum::Rider;
+            $user = DB::transaction(function () use ($validated) {
+                $user = User::create($validated);
 
-            $user = User::create($validated);
+                $user->userProfile()->create([
+                    'phone' => $validated['phone'],
+                    'address' => $validated['address'],
+                    'nin' => $validated['nin'],
+                    'guarantors_name' => $validated['guarantors_name'],
+                    'guarantors_address' => $validated['guarantors_address'],
+                    'guarantors_phone' => $validated['guarantors_phone'],
+                    'vehicle_type' => $validated['vehicle_type'],
+                    'profile_pic_url' => $validated['profilePicUrl'],
+                ]);
 
-            // Create user profile
-            $user->userProfile()->create([
-                'phone' => $validated['phone'],
-                'address' => $validated['address'],
-                'nin' => $validated['nin'],
-                'guarantors_name' => $validated['guarantors_name'],
-                'vehicle_type' => $validated['vehicle_type'],
-            ]);
+                return $user; // Return the created user from the transaction closure
+            });
 
-            Cache::flush();
+            Cache::flush(); // Flush cache after successful transaction
 
             return response()->json([
-                'data' => new UserResource($user->load(['branch', 'userProfile']))
+                'data' => new UserResource($user->load(['branch', 'userProfile'])) // Load relations after transaction
             ], 201);
-        } catch (\Exception $e) {
-            Log::error('Rider registration failed:', ['error' => $e->getMessage()]);
-            return response()->json(['message' => 'Rider registration failed'], 500);
+
+        } catch (\Throwable $e) { // Catch Throwable for broader error handling (including DB errors)
+            Log::error('Rider registration failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['message' => 'Rider registration failed due to an internal error.'], 500);
         }
     }
 
@@ -94,8 +102,7 @@ class UserController extends Controller
         try {
             $validated = $request->validated();
             $validated['password'] = Hash::make($validated['password']);
-            $validated['role'] = isset($validated['role']) ? $validated['role'] : RoleEnum::Admin;
-
+            $validated['role'] = RoleEnum::Admin;
             $user = User::create($validated);
             Cache::flush();
 
@@ -192,9 +199,10 @@ class UserController extends Controller
     public function updateVerificationStatus(Request $request, User $user): JsonResponse
     {
         $validated = $request->validate([
-            'status' => ['required', new EnumRule(ProfileVerificationStatusEnum::class)]
+            'status' => ['required', new EnumRule(ProfileVerificationStatusEnum::class)],
+            'rider_id' => ['required', 'exists:users,id']
         ]);
-
+        $user = User::find($validated['rider_id']);
         if ($user->role !== RoleEnum::Rider) {
             return $this->errorResponse('User is not a rider.', 400);
         }
@@ -207,6 +215,8 @@ class UserController extends Controller
 
         try {
             $user->verification_status = $newStatus;
+            $user->verified_by = $request->user()->fullname;
+            $user->email_verified_at = now();
             $user->save();
 
             $this->flushUserCache($user->id);

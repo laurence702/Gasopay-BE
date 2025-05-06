@@ -17,17 +17,14 @@ class UserProfileResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'user_id' => $this->user_id,
             'user' => new UserResource($this->whenLoaded('user')),
             'address' => $this->address,
             'vehicle_type' => $this->vehicle_type,
             'nin' => $this->nin,
             'guarantors_name' => $this->guarantors_name,
-            'photo' => $this->photo,
-            'barcode' => $this->barcode,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            'guarantors_address' => $this->guarantors_address,
+            'guarantors_phone' => $this->guarantors_phone,
+            'profile_pic_url' => $this->profile_pic_url,
         ];
     }
 }

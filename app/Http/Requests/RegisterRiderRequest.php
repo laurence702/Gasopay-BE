@@ -25,6 +25,9 @@ class RegisterRiderRequest extends FormRequest
             'vehicle_type' => ['required', Rule::in(VehicleTypeEnum::cases())],
             'nin' => ['required', 'string'],
             'guarantors_name' => ['required', 'string'],
+            'guarantors_address' => ['required', 'string'],
+            'guarantors_phone' => ['required', 'string'],
+            'profilePicUrl' => ['required', 'string'],
         ];
     }
 } 

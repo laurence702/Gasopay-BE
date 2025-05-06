@@ -21,9 +21,11 @@ class UserResource extends JsonResource
             'phone' => $this->phone,
             'role' => $this->role,
             'verification_status' => $this->verification_status,
+            'verified_by' => $this->verified_by,
             'branch_id' => $this->branch_id,
             'branch' => new BranchResource($this->whenLoaded('branch')),
             'user_profile' => new UserProfileResource($this->whenLoaded('userProfile')),
+            'balance' => $this->balance,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

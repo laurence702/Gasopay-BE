@@ -30,7 +30,6 @@ class UpdateUserProfileRequest extends FormRequest
             'nin' => ['sometimes', 'string', 'max:20'],
             'guarantors_name' => ['sometimes', 'string', 'max:255'],
             'photo' => ['nullable', 'image', 'max:2048'],
-            'barcode' => ['nullable', 'string', 'max:255'],
         ];
     }
 }

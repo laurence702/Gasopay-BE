@@ -28,8 +28,7 @@ class UserProfileControllerTest extends TestCase
             'address' => '123 Test Street',
             'nin' => 'NIN123456',
             'guarantors_name' => 'John Doe',
-            'photo' => 'photo.jpg',
-            'barcode' => 'BARCODE123',
+            'profile_pic_url' => 'photo.jpg',
         ];
     }
 
@@ -58,8 +57,10 @@ class UserProfileControllerTest extends TestCase
                         'address',
                         'nin',
                         'guarantors_name',
-                        'photo',
-                        'barcode',
+                        'guarantors_address',
+                        
+                        
+                        'profile_pic_url',
                         'created_at',
                         'updated_at',
                     ],
@@ -122,8 +123,9 @@ class UserProfileControllerTest extends TestCase
                     'address',
                     'nin',
                     'guarantors_name',
-                    'photo',
-                    'barcode',
+                    'guarantors_address',
+                    
+                    
                     'created_at',
                     'updated_at',
                 ],
@@ -157,8 +159,9 @@ class UserProfileControllerTest extends TestCase
                     'address',
                     'nin',
                     'guarantors_name',
-                    'photo',
-                    'barcode',
+                    'guarantors_address',
+                    
+                    
                     'created_at',
                     'updated_at',
                 ],
@@ -195,8 +198,9 @@ class UserProfileControllerTest extends TestCase
                     'address',
                     'nin',
                     'guarantors_name',
-                    'photo',
-                    'barcode',
+                    'guarantors_address',
+                    'guarantors_phone',
+                    'profile_pic_url',
                     'created_at',
                     'updated_at',
                 ],

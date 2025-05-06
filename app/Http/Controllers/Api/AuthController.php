@@ -67,18 +67,24 @@ class AuthController extends Controller
     public function login(LoginRequest $request)
     {
         $credentials = $request->validated();
-        $loginField = filter_var($credentials['email'], FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
-        
-        if (!Auth::attempt([
-            $loginField => $credentials['email'],
-            'password' => $credentials['password']
-        ])) {
+        $loginIdentifier = $credentials['login_identifier'];
+        $password = $credentials['password'];
+
+        $loginField = filter_var($loginIdentifier, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+
+        $authCredentials = [
+            $loginField => $loginIdentifier,
+            'password' => $password
+        ];
+
+        if (!Auth::attempt($authCredentials)) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'Invalid credentials',
             ], 401);
         }
 
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $user->load('userProfile');
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -88,7 +94,7 @@ class AuthController extends Controller
             'message' => 'Login successful',
             'user' => new UserResource($user),
             'token' => $token,
-        ],200);
+        ], 200);
     }
 
     public function loggedInUser(Request $request)

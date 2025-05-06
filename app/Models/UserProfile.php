@@ -18,8 +18,9 @@ class UserProfile extends Model
         'vehicle_type',
         'nin',
         'guarantors_name',
-        'photo',
-        'barcode',
+        'guarantors_address',
+        'guarantors_phone',
+        'profile_pic_url',
     ];
 
     protected $casts = [

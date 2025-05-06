@@ -53,8 +53,6 @@ class AuthControllerTest extends TestCase
                     'phone',
                     'role',
                     'user_profile' => [
-                        'id',
-                        'user_id',
                         'address',
                         'nin',
                         'guarantors_name',
@@ -107,8 +105,6 @@ class AuthControllerTest extends TestCase
                     'phone',
                     'role',
                     'user_profile' => [
-                        'id',
-                        'user_id',
                         'address',
                         'nin',
                         'guarantors_name',
@@ -195,7 +191,7 @@ class AuthControllerTest extends TestCase
         Mail::assertNotSent(WelcomeEmail::class);
     }
 
-    public function test_user_can_login_with_correct_credentials()
+    public function test_user_can_login_with_correct_email_credential()
     {
         $user = User::factory()->create([
             'fullname' => 'Test User',
@@ -206,7 +202,7 @@ class AuthControllerTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/login', [
-            'email' => 'test@example.com',
+            'login_identifier' => 'test@example.com',
             'password' => 'password123',
         ]);
 
@@ -223,15 +219,44 @@ class AuthControllerTest extends TestCase
             ]);
     }
 
-    public function test_user_cannot_login_with_incorrect_credentials()
+    public function test_user_can_login_with_correct_phone_credential()
+    {
+        $user = User::factory()->create([
+            'fullname' => 'Test User Phone',
+            'email' => 'testphone@example.com',
+            'phone' => '1234567890',
+            'password' => Hash::make('password123'),
+            'role' => RoleEnum::Regular->value,
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'login_identifier' => '1234567890',
+            'password' => 'password123',
+        ]);
+
+        $response->assertOk()
+            ->assertJson([
+                'status' => 'success',
+                'message' => 'Login successful',
+            ])
+            ->assertJsonStructure([
+                'status',
+                'message',
+                'user',
+                'token',
+            ]);
+    }
+
+    public function test_user_cannot_login_with_incorrect_password()
     {
         $user = User::factory()->create([
             'email' => 'test@example.com',
+            'phone' => '1234567890',
             'password' => Hash::make('password123'),
         ]);
 
         $response = $this->postJson('/api/login', [
-            'email' => 'test@example.com',
+            'login_identifier' => 'test@example.com',
             'password' => 'wrongpassword',
         ]);
 
@@ -240,6 +265,22 @@ class AuthControllerTest extends TestCase
                 'status' => 'error',
                 'message' => 'Invalid credentials',
             ]);
+    }
+
+    public function test_user_cannot_login_with_non_existent_identifier()
+    {
+        // No user created, attempt login with fake identifier
+        $response = $this->postJson('/api/login', [
+            'login_identifier' => 'nonexistent@example.com',
+            'password' => 'password123',
+        ]);
+
+        // Expect 401 Unauthorized because Auth::attempt will fail
+        $response->assertUnauthorized()
+                 ->assertJson([
+                    'status' => 'error',
+                    'message' => 'Invalid credentials',
+                 ]);
     }
 
     public function test_authenticated_user_can_get_their_information()
