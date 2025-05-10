@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libzip-dev \
-    libpq-dev
+    libpq-dev \
+    nginx
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -33,11 +34,18 @@ COPY . .
 # Install dependencies
 RUN composer install --no-interaction --no-dev --optimize-autoloader
 
+# Copy Nginx configuration
+COPY nginx.conf /etc/nginx/sites-available/default
+
+# Copy start script
+COPY start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
+
 # Set permissions
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
-# Expose port 9000
-EXPOSE 9000
+# Expose the port Nginx will listen on (should match APP_PORT)
+EXPOSE 10000
 
-# Start PHP-FPM
-CMD ["php-fpm"] 
+# Start PHP-FPM and Nginx
+CMD ["start.sh"] 
