@@ -37,7 +37,7 @@ class UserController extends Controller
         return Cache::remember($cacheKey, 300, function () {
             $users = User::with(['branch', 'userProfile'])
                 ->latest()
-                ->paginate(10);
+                ->paginate(30);
 
             return UserResource::collection($users);
         });
@@ -66,7 +66,7 @@ class UserController extends Controller
         $validated = $request->validated();
         $validated['password'] = Hash::make($validated['password']);
         $validated['role'] = RoleEnum::Rider;
-
+        $validated['ip_address'] = $request->getClientIp();
         try {
             $user = DB::transaction(function () use ($validated) {
                 $user = User::create($validated);
@@ -80,6 +80,7 @@ class UserController extends Controller
                     'guarantors_phone' => $validated['guarantors_phone'],
                     'vehicle_type' => $validated['vehicle_type'],
                     'profile_pic_url' => $validated['profilePicUrl'],
+                    'ip_address' => $validated['ip_address']
                 ]);
 
                 return $user;
@@ -246,10 +247,21 @@ class UserController extends Controller
         }
 
         try {
-            $user->verification_status = $newStatus;
-            $user->verified_by = $request->user()->fullname;
-            $user->email_verified_at = now();
-            $user->save();
+            if($newStatus === ProfileVerificationStatusEnum::REJECTED){
+                $user->verification_status = $newStatus;
+                $user->save();
+                //send sms to the rider
+                $message = "Your profile has been rejected. Please update your profile and try again.";
+                //$this->sendSms($user->phone, $message); //TODO
+            }else{
+                $user->verification_status = $newStatus;
+                $user->verified_by = $request->user()->fullname;
+                $user->email_verified_at = now();
+                $user->save();
+                //send sms to the rider
+                $message = "Your profile has been verified. You can now login to the app.";
+                //$this->sendSms($user->phone, $message); //TODO
+            }
 
             $this->flushUserCache($user->id);
 

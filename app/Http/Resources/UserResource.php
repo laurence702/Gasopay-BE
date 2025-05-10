@@ -27,6 +27,8 @@ class UserResource extends JsonResource
             'user_profile' => new UserProfileResource($this->whenLoaded('userProfile')),
             'balance' => $this->balance,
             'banned_at' => $this->banned_at,
+            'banned_reason' => $this?->banned_reason,
+            'ip_address' => $this?->ip_address,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

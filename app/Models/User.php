@@ -33,6 +33,8 @@ class User extends Authenticatable
         'branch_id',
         'verification_status',
         'banned_at',
+        'banned_reason',
+        'ip_address',
     ];
 
     /**

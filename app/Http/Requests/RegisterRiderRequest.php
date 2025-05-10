@@ -28,6 +28,7 @@ class RegisterRiderRequest extends FormRequest
             'guarantors_address' => ['required', 'string'],
             'guarantors_phone' => ['required', 'string'],
             'profilePicUrl' => ['required', 'string'],
+            'ip_address' => ['string'],
         ];
     }
 } 
