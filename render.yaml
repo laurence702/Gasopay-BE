@@ -1,0 +1,65 @@
+services:
+  - type: web
+    name: my-laravel-app
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: APP_KEY
+        value: "your-app-key-set-in-render-dashboard"
+      - key: APP_ENV
+        value: "production"
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        value: "https://your-app-name.onrender.com"
+      - key: APP_PORT
+        value: 10000
+      - key: LOG_CHANNEL
+        value: "stderr"
+      - key: DB_CONNECTION
+        value: "pgsql"
+      - key: DB_HOST
+        value: "my-postgres-db"
+      - key: DB_PORT
+        value: 5432
+      - key: DB_DATABASE
+        value: "myappdb"
+      - key: DB_USERNAME
+        value: "render"
+      - key: DB_PASSWORD
+        fromService:
+          type: pserv
+          name: my-postgres-db
+          envVarKey: POSTGRES_PASSWORD
+    autoDeploy: true
+    buildCommand: |
+      composer install --no-interaction --no-plugins --no-scripts --no-dev --prefer-dist --optimize-autoloader
+      php artisan key:generate --force
+      php artisan config:cache
+      php artisan route:cache
+      php artisan view:cache
+      php artisan migrate --force --seed
+
+  - type: pserv
+    name: my-postgres-db
+    runtime: docker
+    image:
+      url: "docker.io/library/postgres:15"
+    region: oregon
+    plan: free
+    envVars:
+      - key: POSTGRES_USER
+        value: "render"
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+      - key: POSTGRES_DB
+        value: "myappdb"
+      - key: PGDATA
+        value: "/var/lib/postgresql/data/pgdata"
+    disk:
+      name: "postgres-data"
+      mountPath: "/var/lib/postgresql/data"
+      sizeGB: 1 
