@@ -107,6 +107,19 @@ class PaymentHistoryController extends Controller
         $paymentHistory->markAsPaid($amount, $request->user(), PaymentMethodEnum::Cash->value);
         cache()->tags(['payment_histories'])->flush();
 
+        // Send payment notification
+        try {
+            $order = $paymentHistory->order;
+            if ($order) {
+                $outstanding = $order->amount_due - $order->amount_paid;
+                $notificationService = app()->make(\App\Services\NotificationService::class);
+                $notificationService->sendPaymentNotification($order, $amount, $outstanding);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to send payment notification: ' . $e->getMessage());
+            // Continue execution even if notification fails
+        }
+
         return response()->json(['message' => 'Cash payment marked successfully']);
     }
 }

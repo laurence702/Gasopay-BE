@@ -58,6 +58,9 @@ class OrderController extends Controller
         if ($rider->hasUnpaidBalance()) {
             return response()->json(['message' => 'Please settle old debts first'], 400);
         }
+        
+        // Adding UUID for the order
+        $data['id'] = (string) Str::uuid();
         $data['created_by'] = $request->user()->id;
         $data['branch_id'] = $request->user()->branch_id;
         $data['payment_type'] = ($data['amount_due'] !== $data['amount_paid']) ? PaymentTypeEnum::Part : PaymentTypeEnum::Full;
@@ -69,6 +72,15 @@ class OrderController extends Controller
 
         try {
             $order = Order::create($data);
+            
+            // Send order notification
+            try {
+                $notificationService = app()->make(\App\Services\NotificationService::class);
+                $notificationService->sendOrderCreatedNotification($order);
+            } catch (\Exception $e) {
+                Log::warning('Failed to send order notification: ' . $e->getMessage());
+                // Continue execution even if notification fails
+            }
 
             return $this->successResponse(new OrderResource($order), 'Order created successfully');
         } catch (\Exception $e) {

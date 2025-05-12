@@ -157,6 +157,15 @@ class BranchRiderController extends Controller
             
             $rider->save();
             
+            // Send verification notification
+            try {
+                $notificationService = app()->make(\App\Services\NotificationService::class);
+                $notificationService->sendVerificationNotification($rider, $validated['status']);
+            } catch (\Exception $e) {
+                Log::warning('Failed to send verification notification: ' . $e->getMessage());
+                // Continue execution even if notification fails
+            }
+            
             return response()->json([
                 'message' => 'Rider verification status updated successfully',
                 'rider' => new UserResource($rider->fresh(['userProfile', 'branch']))
