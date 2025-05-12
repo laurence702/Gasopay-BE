@@ -14,6 +14,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         \App\Console\Commands\TestSmsCommand::class,
+        \App\Console\Commands\TestTwilioCommand::class,
     ];
 
     /**
