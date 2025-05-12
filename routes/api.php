@@ -78,7 +78,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 Route::middleware(['auth:sanctum'])->group(function () {
     // Order management routes
-    Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
+    // Route::post('/orders', [OrderController::class, 'createOrder'])->name('branch-admin.create-order');
     Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
     Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
 });
@@ -109,4 +109,51 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SuperAdmin::class, ])->g
     Route::post('payment-histories/{paymentHistory}/proof', [PaymentProofController::class, 'submit']);
     Route::post('payment-proofs/{paymentProof}/approve', [PaymentProofController::class, 'approve']);
     Route::post('payment-proofs/{paymentProof}/reject', [PaymentProofController::class, 'reject']);
+});
+
+// Branch Admin Dashboard routes
+Route::middleware(['auth:sanctum', \App\Http\Middleware\BranchAdmin::class])->prefix('branch-admin')->group(function () {
+    // Dashboard statistics
+    Route::get('/statistics', [App\Http\Controllers\Api\BranchDashboardController::class, 'getStatistics'])
+        ->name('branch-admin.statistics');
+    
+    // Branch information
+    Route::get('/branch-info', [App\Http\Controllers\Api\BranchDashboardController::class, 'getBranchInfo'])
+        ->name('branch-admin.branch-info');
+    
+    // Recent activities
+    Route::get('/activities', [App\Http\Controllers\Api\BranchActivityController::class, 'getRecentActivities'])
+        ->name('branch-admin.activities');
+    
+    // Order history
+    Route::get('/order-history', [App\Http\Controllers\Api\BranchActivityController::class, 'getOrderHistory'])
+        ->name('branch-admin.order-history');
+    
+    // Riders management
+    Route::get('/riders', [App\Http\Controllers\Api\BranchRiderController::class, 'getRiders'])
+        ->name('branch-admin.riders');
+    
+    // Pending approvals
+    Route::get('/pending-approvals', [App\Http\Controllers\Api\BranchRiderController::class, 'getPendingApprovals'])
+        ->name('branch-admin.pending-approvals');
+    
+    // Update rider verification status
+    Route::put('/riders/{id}/verification', [App\Http\Controllers\Api\BranchRiderController::class, 'updateVerificationStatus'])
+        ->name('branch-admin.update-verification');
+
+    // Product Management
+    Route::get('/products', [App\Http\Controllers\Api\BranchProductController::class, 'getProducts'])
+        ->name('branch-admin.products');
+    Route::get('/products/{id}', [App\Http\Controllers\Api\BranchProductController::class, 'getProduct'])
+        ->name('branch-admin.product');
+    Route::post('/price-quote', [App\Http\Controllers\Api\BranchProductController::class, 'createPriceQuote'])
+        ->name('branch-admin.price-quote');
+
+    // QR Scanner
+    Route::post('/scan', [App\Http\Controllers\Api\QRScannerController::class, 'processScan'])
+        ->name('branch-admin.scan');
+    
+    // create Order
+    Route::post('/orders', [App\Http\Controllers\Api\OrderController::class, 'createOrder'])
+        ->name('branch-admin.create-order');
 });

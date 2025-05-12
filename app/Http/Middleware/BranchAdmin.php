@@ -16,10 +16,11 @@ class BranchAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if(!$request->user() && $request->user()->hasRole(RoleEnum::Admin)) {
+        // Check if user is authenticated and has admin role
+        if(!$request->user() || !$request->user()->hasRole(RoleEnum::Admin->value)) {
             return response()->json([
-                'message' => 'You need admin role to access this resource.'
-            ], 401);
+                'message' => 'You need branch admin role to access this resource.'
+            ], 403); // Using 403 Forbidden instead of 401 Unauthorized
         }
         return $next($request);
     }

@@ -12,7 +12,7 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
            $table->dropColumn('profile_verified');
             $table->enum('verification_status', ['pending', 'verified', 'rejected'])
-            ->default(ProfileVerificationStatusEnum::PENDING->value)    ;
+            ->default(ProfileVerificationStatusEnum::PENDING->value);
         });
     }
 

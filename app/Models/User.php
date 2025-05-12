@@ -3,17 +3,18 @@
 namespace App\Models;
 
 use App\Enums\RoleEnum;
-use App\Enums\ProfileVerificationStatusEnum;
 use App\Traits\Cacheable;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
+use App\Enums\ProfileVerificationStatusEnum;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
@@ -47,20 +48,20 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-     /**
+    /**
      * @var bool
      */
     public $incrementing = false;
 
     protected $keyType = 'string';
 
-    protected static function boot()  
-    {  
-        parent::boot();  
+    protected static function boot()
+    {
+        parent::boot();
 
-        static::creating(function ($model) {  
+        static::creating(function ($model) {
             $model->id = (string) Str::ulid();
-        });  
+        });
     }
 
     /**
@@ -146,5 +147,18 @@ class User extends Authenticatable
     public function scopeDeleted($query)
     {
         return $query->whereNotNull('deleted_at');
+    }
+
+    public function hasUnpaidBalance(): bool
+    {
+        return $this->balance > 0;
+    }
+
+    /**
+     * rider orders accessor
+     */
+    public function riderOrders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'payer_id');
     }
 }

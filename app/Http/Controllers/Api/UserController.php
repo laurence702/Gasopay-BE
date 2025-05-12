@@ -104,10 +104,13 @@ class UserController extends Controller
             $validated = $request->validated();
             $validated['password'] = Hash::make($validated['password']);
             $validated['role'] = RoleEnum::Admin;
+            $validated['verrification_status'] = ProfileVerificationStatusEnum::VERIFIED;
             $user = User::create($validated);
             Cache::flush();
 
-            return new UserResource($user->load(['branch', 'userProfile']));
+            return response()->json([
+                'data' => new UserResource($user)
+            ], 201);
         } catch (\Exception $e) {
             Log::error('Admin creation failed:', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Admin creation failed'], 500);
