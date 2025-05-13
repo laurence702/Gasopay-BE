@@ -26,6 +26,8 @@ class UserResource extends JsonResource
             'branch' => new BranchResource($this->whenLoaded('branch')),
             'user_profile' => new UserProfileResource($this->whenLoaded('userProfile')),
             'balance' => $this->balance,
+            'orders_count' => $this->whenCounted('orders'),
+            'orders_total_amount' => $this->when(isset($this->orders_sum_amount_due), $this->orders_sum_amount_due),
             'banned_at' => $this->banned_at,
             'banned_reason' => $this?->banned_reason,
             'ip_address' => $this?->ip_address,

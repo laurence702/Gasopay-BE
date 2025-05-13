@@ -157,7 +157,7 @@ class User extends Authenticatable
     /**
      * rider orders accessor
      */
-    public function riderOrders(): HasMany
+    public function orders(): HasMany
     {
         return $this->hasMany(Order::class, 'payer_id');
     }

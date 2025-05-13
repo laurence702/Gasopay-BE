@@ -62,6 +62,7 @@ class Order extends Model
         parent::boot();
         static::creating(function ($model) {
             $model->id = (string) Str::uuid();
+            $model->product = Str::lower($model->product);
         });
     }
 
@@ -107,5 +108,10 @@ class Order extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(PaymentHistory::class);
+    }
+
+    public function orderOwner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'payer_id');
     }
 } 

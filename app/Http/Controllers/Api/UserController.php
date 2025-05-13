@@ -36,6 +36,8 @@ class UserController extends Controller
 
         return Cache::remember($cacheKey, 300, function () {
             $users = User::with(['branch', 'userProfile'])
+                ->withCount('orders')
+                ->withSum('orders', 'amount_due')
                 ->latest()
                 ->paginate(30);
 

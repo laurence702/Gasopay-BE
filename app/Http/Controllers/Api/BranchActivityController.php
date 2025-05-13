@@ -134,12 +134,12 @@ class BranchActivityController extends Controller
     public function getOrderHistory(Request $request): JsonResponse
     {
         // Get branch_id from request, or if not provided use authenticated admin's branch
-        $branchId = $request->input('branch_id');
+        $branchId = $request?->input('branch_id');
         
         if (!$branchId && $request->user()->role === RoleEnum::Admin) {
             $branchId = $request->user()->branch_id;
         }
-        
+
         // Ensure the requesting user has access to this branch
         if ($request->user()->role === RoleEnum::Admin && $request->user()->branch_id != $branchId) {
             return response()->json(['error' => 'Unauthorized to access this branch'], 403);
@@ -149,15 +149,17 @@ class BranchActivityController extends Controller
         $perPage = $request->input('per_page', 15);
         
         // Filtering options
-        $status = $request->input('status');
-        $startDate = $request->input('start_date');
-        $endDate = $request->input('end_date');
-        $riderId = $request->input('rider_id');
+        $status = $request?->input('status');
+        $startDate = $request?->input('start_date');
+        $endDate = $request?->input('end_date');
+        $riderId = $request?->input('rider_id');
         
-        $query = Order::with('user', 'product')
-            ->where('branch_id', $branchId);
+        $query = Order::with('orderOwner');
             
         // Apply filters if provided
+        if($branchId) {
+            $query->where('branch_id', $branchId);
+        }
         if ($status) {
             $query->where('status', $status);
         }
