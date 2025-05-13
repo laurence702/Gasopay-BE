@@ -58,9 +58,11 @@ class UserController extends Controller
 
         Cache::flush();
 
-        return response()->json([
-            'data' => new UserResource($user->load(['branch', 'userProfile']))
-        ], 201);
+        return $this->successResponse(
+            new UserResource($user->load(['branch', 'userProfile'])),
+            'User created successfully.',
+            201
+        );
     }
 
     public function register_rider(RegisterRiderRequest $request): JsonResponse
@@ -90,17 +92,19 @@ class UserController extends Controller
 
             Cache::flush();
 
-            return response()->json([
-                'data' => new UserResource($user->load(['branch', 'userProfile']))
-            ], 201);
+            return $this->successResponse(
+                new UserResource($user->load(['branch', 'userProfile'])),
+                'Rider registered successfully.',
+                201
+            );
 
         } catch (\Throwable $e) {
             Log::error('Rider registration failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return response()->json(['message' => 'Rider registration failed due to an internal error.'], 500);
+            return $this->errorResponse('Rider registration failed due to an internal error.', 500);
         }
     }
 
-    public function createAdmin(CreateAdminRequest $request): UserResource|JsonResponse
+    public function createAdmin(CreateAdminRequest $request): JsonResponse
     {
         try {
             $validated = $request->validated();
@@ -110,12 +114,14 @@ class UserController extends Controller
             $user = User::create($validated);
             Cache::flush();
 
-            return response()->json([
-                'data' => new UserResource($user)
-            ], 201);
+            return $this->successResponse(
+                new UserResource($user),
+                'Admin created successfully.',
+                201
+            );
         } catch (\Exception $e) {
             Log::error('Admin creation failed:', ['error' => $e->getMessage()]);
-            return response()->json(['message' => 'Admin creation failed'], 500);
+            return $this->errorResponse('Admin creation failed.', 500);
         }
     }
 
@@ -128,7 +134,7 @@ class UserController extends Controller
             return new UserResource($user->load(['branch', 'userProfile']));
         });
 
-        return response()->json(['data' => $data]);
+        return $this->successResponse($data, 'User retrieved successfully.');
     }
 
     public function allUsers(): AnonymousResourceCollection
@@ -150,9 +156,10 @@ class UserController extends Controller
 
         Cache::flush();
 
-        return response()->json([
-            'data' => new UserResource($user->load(['branch', 'userProfile']))
-        ]);
+        return $this->successResponse(
+            new UserResource($user->load(['branch', 'userProfile'])),
+            'User updated successfully.'
+        );
     }
 
     /**
@@ -188,43 +195,44 @@ class UserController extends Controller
         return $this->successResponse(new UserResource($user->refresh()), 'User banned successfully.');
     }
 
-    public function destroy(User $user)
+    public function destroy(User $user): JsonResponse
     {
         if ($user->trashed()) {
-            return response()->json(['message' => 'User already deleted'], 404);
+            return $this->errorResponse('User already deleted.', 404);
         }
 
         $user->delete();
-        // Cache::tags(['users'])->flush(); // Remove or comment out if using file cache
-        Cache::flush(); // Use broad flush or specific forget if needed
+        Cache::flush();
 
-        return response()->json(['message' => 'User deleted successfully']);
+        return $this->successResponse(null, 'User deleted successfully.', 200);
     }
 
-    public function restore($id)
+    public function restore($id): JsonResponse
     {
         $user = User::withTrashed()->findOrFail($id);
 
-        if (!$user->trashed()) { // Check if user is actually trashed
-            return response()->json(['message' => 'User is not deleted'], 400);
+        if (!$user->trashed()) {
+            return $this->errorResponse('User is not deleted.', 400);
         }
 
         $user->restore();
+        Cache::flush();
 
-        return response()->json(['message' => 'User restored successfully']);
+        return $this->successResponse(null, 'User restored successfully.');
     }
 
-    public function forceDelete($id)
+    public function forceDelete($id): JsonResponse
     {
         $user = User::withTrashed()->findOrFail($id);
 
-        if (!$user->trashed()) { // Check if user is actually trashed
-            return response()->json(['message' => 'User must be soft-deleted first'], 400);
+        if (!$user->trashed()) {
+            return $this->errorResponse('User must be soft-deleted first.', 400);
         }
 
         $user->forceDelete();
+        Cache::flush();
 
-        return response()->json(['message' => 'User permanently deleted']);
+        return $this->successResponse(null, 'User permanently deleted.');
     }
 
     /**
@@ -306,12 +314,11 @@ class UserController extends Controller
     public function indexUnpaginated(): JsonResponse
     {
         try {
-            $users = User::all(); 
-            return response()->json(UserResource::collection($users));
+            $users = User::all();
+            return $this->successResponse(UserResource::collection($users), 'All users retrieved successfully.');
         } catch (\Throwable $e) {
             Log::error("Error fetching all unpaginated users: " . $e->getMessage());
-
-            return response()->json(['success' => false, 'message' => 'Failed to fetch users.'], 500);
+            return $this->errorResponse('Failed to fetch users.', 500);
         }
     }
 }

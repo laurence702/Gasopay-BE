@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\Branch;
 use App\Models\UserProfile;
 use App\Models\VehicleType;
+use App\Models\Order;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -76,6 +77,45 @@ class UserControllerTest extends TestCase
                 ],
                 'links',
                 'meta'
+            ]);
+    }
+
+    public function test_authenticated_user_can_list_users_with_order_aggregates()
+    {
+        /** @var Authenticatable $admin */
+        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+        $this->actingAs($admin);
+
+        /** @var User $testUser */
+        $testUser = User::factory()->create();
+        $branch = Branch::factory()->create(); // Create a branch for the orders
+
+        // Create orders for the testUser
+        Order::factory()->for($testUser, 'payer')->for($branch, 'branch')->create(['amount_due' => 10000, 'product' => 'CNG']);
+        Order::factory()->for($testUser, 'payer')->for($branch, 'branch')->create(['amount_due' => 15000, 'product' => 'CNG']);
+
+        $response = $this->getJson('/api/users');
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => [
+                        'id',
+                        'fullname',
+                        'email',
+                        'phone',
+                        'role',
+                        'orders_count',
+                        'orders_total_amount',
+                    ]
+                ],
+                'links',
+                'meta'
+            ])
+            ->assertJsonFragment([
+                'id' => $testUser->id,
+                'orders_count' => 2,
+                'orders_total_amount' => 25000
             ]);
     }
 

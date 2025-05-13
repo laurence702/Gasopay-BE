@@ -45,12 +45,10 @@ class OrderController extends Controller
             //dd('Order details', $data);
             $order = Order::create($data);
 
-            return (new OrderResource($order))
-                ->response()
-                ->setStatusCode(201);
+            return $this->successResponse(new OrderResource($order), 'Order created successfully.', 201);
         } catch (Exception $e) {
             Log::error($e->getMessage());
-            return response()->json(['message' => 'Order creation failed', 'error' => $e->getMessage()], 500);
+            return $this->errorResponse('Order creation failed: ' . $e->getMessage(), 500);
         }
     }
 
@@ -60,10 +58,7 @@ class OrderController extends Controller
         $rider = User::findOrFail($data['payer_id']);
     
         if ($rider->hasUnpaidBalance()) {
-            return response()->json(
-                ['message' => 'Please settle old debts first'], 
-                400
-            );
+            return $this->errorResponse('Please settle old debts first', 400);
         }
     
         $orderData = $this->prepareOrderData($data, $rider);
@@ -84,10 +79,7 @@ class OrderController extends Controller
             );
         } catch (\Exception $e) {
             Log::error('Failed to create order: ' . $e->getMessage());
-            return response()->json(
-                ['message' => 'Failed to create order'], 
-                500
-            );
+            return $this->errorResponse('Failed to create order: ' . $e->getMessage(), 500);
         }
     }
     
@@ -151,6 +143,6 @@ class OrderController extends Controller
     public function destroy(Order $order): JsonResponse
     {
         $order->delete();
-        return response()->json(['message' => 'Order deleted'], 204);
+        return $this->successResponse(null, 'Order deleted successfully', 200);
     }
 }
