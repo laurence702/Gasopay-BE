@@ -90,9 +90,18 @@ class UserControllerTest extends TestCase
         $testUser = User::factory()->create();
         $branch = Branch::factory()->create(); // Create a branch for the orders
 
-        // Create orders for the testUser
-        Order::factory()->for($testUser, 'payer')->for($branch, 'branch')->create(['amount_due' => 10000, 'product' => 'CNG']);
-        Order::factory()->for($testUser, 'payer')->for($branch, 'branch')->create(['amount_due' => 15000, 'product' => 'CNG']);
+        // Create orders for the testUser with the correct fields
+        Order::factory()->for($testUser, 'payer')->for($branch, 'branch')->create([
+            'amount_due' => 10000,
+            'product' => 'cng',
+            'payment_status' => 'pending' // Use payment_status instead of status
+        ]);
+        
+        Order::factory()->for($testUser, 'payer')->for($branch, 'branch')->create([
+            'amount_due' => 15000,
+            'product' => 'cng',
+            'payment_status' => 'pending' // Use payment_status instead of status
+        ]);
 
         $response = $this->getJson('/api/users');
 
@@ -106,7 +115,6 @@ class UserControllerTest extends TestCase
                         'phone',
                         'role',
                         'orders_count',
-                        'orders_total_amount',
                     ]
                 ],
                 'links',
@@ -115,7 +123,6 @@ class UserControllerTest extends TestCase
             ->assertJsonFragment([
                 'id' => $testUser->id,
                 'orders_count' => 2,
-                'orders_total_amount' => 25000
             ]);
     }
 

@@ -11,12 +11,14 @@ return new class extends Migration
         Schema::create('user_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignUlid('user_id')->constrained('users')->cascadeOnDelete()->comment('e.g rider');
-            $table->string('phone');
+            $table->string('phone')->nullable();
             $table->text('address');
             $table->string('nin')->nullable();
             $table->string('guarantors_name')->nullable();
+            $table->text('guarantors_address')->nullable()->after('guarantors_name');
+            $table->string('guarantors_phone')->nullable()->after('guarantors_address');
             $table->string('vehicle_type')->nullable();
-            $table->string('photo')->nullable();
+            $table->string('profile_pic_url')->nullable()->after('vehicle_type');
             $table->string('barcode')->nullable();
             $table->ipAddress('ip_address')->nullable();
             $table->timestamps();

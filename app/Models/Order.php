@@ -11,10 +11,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Order extends Model
 {
-    use HasUuids;
+    use HasUuids, HasFactory;
 
     /**
      * Indicates if the model's ID is auto-incrementing.
@@ -35,7 +36,6 @@ class Order extends Model
         'branch_id',
         'product',
         'amount_due',
-        'status',
         'created_by',
         'payment_type',
         'payment_method',
@@ -47,14 +47,13 @@ class Order extends Model
         'amount_due' => 'decimal:2',
         'amount_paid' => 'decimal:2',
         'quantity' => 'integer',
-        'status' => OrderStatusEnum::class,
         'payment_status' => PaymentStatusEnum::class,
         'payment_type' => PaymentTypeEnum::class,
         'payment_method' => PaymentMethodEnum::class,
     ];
 
     protected $attributes = [
-        'status' => OrderStatusEnum::Pending,
+        'payment_status' => PaymentStatusEnum::Pending->value,
     ];
 
     public static function boot()

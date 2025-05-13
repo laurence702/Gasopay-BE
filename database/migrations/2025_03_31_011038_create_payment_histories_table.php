@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('payment_histories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('order_id')->constrained()->onDelete('cascade');
+            $table->foreignUuid('order_id')->constrained('orders')->onDelete('cascade');
             $table->foreignUlid('payer_id')->constrained('users')->onDelete('restrict'); // Rider, User
             $table->foreignUlid('approver_id')->constrained('users')->onDelete('restrict'); // Branch Admin
             $table->foreignId('branch_id')->constrained()->onDelete('cascade'); // Branch where transaction occurs

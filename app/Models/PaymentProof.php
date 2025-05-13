@@ -60,6 +60,10 @@ class PaymentProof extends Model
         $this->save();
 
         $payment = $this->paymentHistory;
-        $payment->markAsPaid($this->amount, $approver, PaymentMethodEnum::BankTransfer->value);
+        $payment->markAsPaid($this->amount, $approver, PaymentMethodEnum::Bank->value);
+
+        $user = $payment->user;
+        $user->balance += $payment->amount_due - $payment->amount_paid;
+        $user->save();
     }
 }

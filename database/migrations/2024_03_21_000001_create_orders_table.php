@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OrderStatusEnum;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -9,22 +8,26 @@ return new class extends Migration
 {
     public function up(): void
     {
-
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('description');
+            $table->string('unit')->nullable()->after('name');
+            $table->text('description')->nullable()->after('name');
+            $table->decimal('price', 8, 2)->default(0.00)->after('unit');
             $table->timestamps();
         });
 
         Schema::create('orders', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->foreignUlid('payer_id')->constrained('users')->cascadeOnDelete()->comment('e.g rider, user');
+            $table->ulid('created_by')->nullable()->after('payer_id');
             $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
-            $table->integer('quantity');
+            $table->enum('product', ['keke', 'car', 'cng', 'pms', 'lpg']);
             $table->decimal('amount_due', 10, 2);
-            $table->string('status')->default(OrderStatusEnum::Pending->value);
+            $table->integer('amount_paid')->default(0)->after('amount_due');
+            $table->enum('payment_type', ['full', 'part'])->default('full')->after('amount_paid');
+            $table->enum('payment_method', ['cash', 'bank', 'mobile_money'])->default('cash')->after('payment_type');
+            $table->enum('payment_status', ['pending', 'paid', 'failed'])->default('pending')->after('payment_method');
             $table->timestamps();
             $table->softDeletes();
 
@@ -34,7 +37,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('products');
         Schema::dropIfExists('orders');
+        Schema::dropIfExists('products');
     }
 }; 

@@ -37,7 +37,7 @@ class UserController extends Controller
         return Cache::remember($cacheKey, 300, function () {
             $users = User::with(['branch', 'userProfile'])
                 ->withCount('orders')
-                ->withSum('orders', 'amount_due')
+                ->withSum('orders as orders_sum_amount_due', 'amount_due')
                 ->latest()
                 ->paginate(30);
 
@@ -204,7 +204,7 @@ class UserController extends Controller
         $user->delete();
         Cache::flush();
 
-        return $this->successResponse(null, 'User deleted successfully.', 200);
+        return $this->successResponse(null, 'User deleted successfully', 200);
     }
 
     public function restore($id): JsonResponse
@@ -218,7 +218,7 @@ class UserController extends Controller
         $user->restore();
         Cache::flush();
 
-        return $this->successResponse(null, 'User restored successfully.');
+        return $this->successResponse(null, 'User restored successfully');
     }
 
     public function forceDelete($id): JsonResponse
@@ -232,7 +232,7 @@ class UserController extends Controller
         $user->forceDelete();
         Cache::flush();
 
-        return $this->successResponse(null, 'User permanently deleted.');
+        return $this->successResponse(null, 'User permanently deleted');
     }
 
     /**
