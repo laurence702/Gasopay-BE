@@ -24,10 +24,9 @@ return new class extends Migration
             $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
             $table->enum('product', ['keke', 'car', 'cng', 'pms', 'lpg']);
             $table->decimal('amount_due', 10, 2);
-            $table->integer('amount_paid')->default(0)->after('amount_due');
-            $table->enum('payment_type', ['full', 'part'])->default('full')->after('amount_paid');
-            $table->enum('payment_method', ['cash', 'bank', 'mobile_money'])->default('cash')->after('payment_type');
-            $table->enum('payment_status', ['pending', 'paid', 'failed'])->default('pending')->after('payment_method');
+            $table->enum('payment_type', ['full', 'part'])->default('full')->after('amount_due');
+            $table->enum('payment_method', ['cash', 'bank_transfer', 'wallet'])->default('cash');
+            $table->enum('payment_status', ['pending', 'paid', 'failed'])->default('pending');
             $table->timestamps();
             $table->softDeletes();
 

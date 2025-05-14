@@ -12,17 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('payment_histories', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->foreignUuid('order_id')->constrained('orders')->onDelete('cascade');
-            $table->foreignUlid('payer_id')->constrained('users')->onDelete('restrict'); // Rider, User
-            $table->foreignUlid('approver_id')->constrained('users')->onDelete('restrict'); // Branch Admin
-            $table->foreignId('branch_id')->constrained()->onDelete('cascade'); // Branch where transaction occurs
-            $table->decimal('amount_due', 10, 2); // Total cost (e.g., 20 liters * price)
-            $table->decimal('amount_paid', 10, 2)->default(0.00)->comment('Amount paid so far');
-            $table->decimal('outstanding', 10, 2)->nullable(); // Remaining balance
-            $table->string('payment_type')->default(PaymentTypeEnum::Part->value); // Enum: Full, Part
-            $table->string('payment_method')->default(PaymentMethodEnum::Cash->value); // Enum: Cash, BankTransfer
-            $table->string('status')->default(PaymentStatusEnum::Pending->value); // Enum: Pending, Approved, Completed
+            $table->foreignUlid('payer_id')->constrained('users')->onDelete('restrict'); // Rider, Regular User
+            $table->decimal('amount', 10, 2);
+            $table->enum('payment_method', ['cash', 'bank_transfer', 'mobile_money', 'wallet']);
+            $table->enum('status', ['pending', 'approved', 'rejected', 'paid', 'completed'])->default('pending');
+            $table->string('reference')->nullable();
+            $table->foreignUlid('approved_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->timestamp('approved_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

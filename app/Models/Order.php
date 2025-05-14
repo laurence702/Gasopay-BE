@@ -39,13 +39,11 @@ class Order extends Model
         'created_by',
         'payment_type',
         'payment_method',
-        'amount_paid',
         'payment_status',
     ];
 
     protected $casts = [
         'amount_due' => 'decimal:2',
-        'amount_paid' => 'decimal:2',
         'quantity' => 'integer',
         'payment_status' => PaymentStatusEnum::class,
         'payment_type' => PaymentTypeEnum::class,
@@ -112,5 +110,25 @@ class Order extends Model
     public function orderOwner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'payer_id');
+    }
+
+    // Computed attribute for balance
+    public function getBalanceAttribute()
+    {
+        $paid = $this->payments()->sum('amount');
+        return $this->amount_due - $paid;
+    }
+
+    // Computed attribute for payment_status
+    public function getComputedPaymentStatusAttribute()
+    {
+        $paid = $this->payments()->sum('amount');
+        if ($paid >= $this->amount_due) {
+            return PaymentStatusEnum::Paid;
+        } elseif ($paid > 0) {
+            return PaymentStatusEnum::Pending;
+        } else {
+            return PaymentStatusEnum::Pending;
+        }
     }
 } 

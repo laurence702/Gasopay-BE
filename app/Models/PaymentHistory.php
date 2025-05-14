@@ -18,16 +18,13 @@ class PaymentHistory extends Model
 
     protected $fillable = [
         'order_id',
-        'payer_id',
-        'branch_id',
+        'user_id',
         'amount',
-        'status',
         'payment_method',
+        'status',
+        'reference',
         'approved_by',
         'approved_at',
-        'payment_type',
-        'payment_proof_id',
-        'paid_at',
     ];
 
     protected $casts = [
@@ -35,8 +32,6 @@ class PaymentHistory extends Model
         'approved_at' => 'datetime',
         'status' => PaymentStatusEnum::class,
         'payment_method' => PaymentMethodEnum::class,
-        'payment_type' => PaymentTypeEnum::class,
-        'paid_at' => 'datetime',
     ];
 
     protected $attributes = [
@@ -62,24 +57,14 @@ class PaymentHistory extends Model
         return $this->belongsTo(Order::class);
     }
 
-    public function payer(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'payer_id');
-    }
-
-    public function branch(): BelongsTo
-    {
-        return $this->belongsTo(Branch::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
-    }
-
-    public function paymentProof(): BelongsTo
-    {
-        return $this->belongsTo(PaymentProof::class);
     }
 
     public function paymentProofs()

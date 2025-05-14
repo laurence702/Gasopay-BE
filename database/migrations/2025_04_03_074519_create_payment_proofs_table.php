@@ -9,15 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('payment_proofs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('payment_history_id')->constrained()->onDelete('cascade');
+            $table->uuid('id')->primary();
+            $table->foreignUuid('payment_history_id')->constrained('payment_histories')->onDelete('cascade');
             $table->string('proof_url');
-            $table->decimal('amount', 10, 2);
-            $table->string('status')->default('pending');
-            $table->foreignUlid('approver_id')->nullable()->constrained('users')->onDelete('set null');
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->foreignUlid('approved_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('approved_at')->nullable();
             $table->timestamps();
-        
             $table->index('payment_history_id');
         });
     }

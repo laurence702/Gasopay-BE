@@ -29,14 +29,12 @@ class PaymentProof extends Model
     protected $fillable = [
         'payment_history_id',
         'proof_url',
-        'amount',
         'status',
         'approved_by',
         'approved_at',
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',
         'status' => ProofStatusEnum::class,
         'approved_at' => 'datetime',
     ];
@@ -58,12 +56,5 @@ class PaymentProof extends Model
         $this->approved_by = $approver->id;
         $this->approved_at = now();
         $this->save();
-
-        $payment = $this->paymentHistory;
-        $payment->markAsPaid($this->amount, $approver, PaymentMethodEnum::Bank->value);
-
-        $user = $payment->user;
-        $user->balance += $payment->amount_due - $payment->amount_paid;
-        $user->save();
     }
 }
