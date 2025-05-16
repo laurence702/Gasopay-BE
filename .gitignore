@@ -24,3 +24,4 @@ yarn-error.log
 postman.json
 .DS_Store
 project_plan.md
+guide/*

@@ -6,6 +6,8 @@ use App\Enums\RoleEnum;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use App\Models\PaymentHistory;
+use App\Policies\PaymentHistoryPolicy;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -15,7 +17,7 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        //
+        PaymentHistory::class => PaymentHistoryPolicy::class,
     ];
 
     public function boot(): void

@@ -11,7 +11,8 @@ class MarkCashPaymentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        // The route parameter for this custom route is 'paymentHistory' (camelCase)
+        return $this->user()->can('markCashPayment', $this->route('paymentHistory'));
     }
 
     /**
@@ -22,7 +23,7 @@ class MarkCashPaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'amount' => 'required|numeric|min:0.01', // Amount must be provided and positive
         ];
     }
 }

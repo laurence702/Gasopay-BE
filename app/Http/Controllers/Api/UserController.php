@@ -90,6 +90,18 @@ class UserController extends Controller
                 return $user;
             });
 
+            // Send welcome SMS to the rider
+            try {
+                $smsService = app()->make(\App\Services\AfricasTalkingService::class);
+                $smsService->send(
+                    $user->phone,
+                    "Welcome to Gasopay! Your rider account has been created. Your verification status is pending. You will be notified once your account is verified."
+                );
+            } catch (\Exception $e) {
+                Log::warning('Failed to send welcome SMS: ' . $e->getMessage());
+                // Continue execution even if SMS fails
+            }
+
             Cache::flush();
 
             return $this->successResponse(
@@ -264,16 +276,32 @@ class UserController extends Controller
                 $user->verification_status = $newStatus;
                 $user->save();
                 //send sms to the rider
-                $message = "Your profile has been rejected. Please update your profile and try again.";
-                //$this->sendSms($user->phone, $message); //TODO
+                try {
+                    $smsService = app()->make(\App\Services\AfricasTalkingService::class);
+                    $smsService->send(
+                        $user->phone, 
+                        "Your profile has been rejected. Please update your profile and try again."
+                    );
+                } catch (\Exception $e) {
+                    Log::warning('Failed to send rejection SMS: ' . $e->getMessage());
+                    // Continue execution even if SMS fails
+                }
             }else{
                 $user->verification_status = $newStatus;
                 $user->verified_by = $request->user()->fullname;
                 $user->email_verified_at = now();
                 $user->save();
                 //send sms to the rider
-                $message = "Your profile has been verified. You can now login to the app.";
-                //$this->sendSms($user->phone, $message); //TODO
+                try {
+                    $smsService = app()->make(\App\Services\AfricasTalkingService::class);
+                    $smsService->send(
+                        $user->phone, 
+                        "Your profile has been verified. You can now login to the app."
+                    );
+                } catch (\Exception $e) {
+                    Log::warning('Failed to send verification SMS: ' . $e->getMessage());
+                    // Continue execution even if SMS fails
+                }
             }
 
             $this->flushUserCache($user->id);

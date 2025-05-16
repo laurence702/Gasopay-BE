@@ -18,7 +18,6 @@ class OrderFactory extends Factory
     public function definition(): array
     {
         $amount_due = $this->faker->randomFloat(2, 1000, 10000);
-        $amount_paid = $this->faker->randomFloat(2, 500, $amount_due);
         
         return [
             'id' => Str::uuid(),
@@ -27,13 +26,15 @@ class OrderFactory extends Factory
             'branch_id' => Branch::factory(),
             'product' => $this->faker->randomElement(['keke', 'car', 'cng', 'pms', 'lpg']),
             'amount_due' => $amount_due,
-            'amount_paid' => $amount_paid,
-            'payment_type' => ($amount_due === $amount_paid) ? PaymentTypeEnum::Full : PaymentTypeEnum::Part,
-            'payment_method' => $this->faker->randomElement(['cash', 'bank', 'mobile_money']),
+            'payment_type' => $this->faker->randomElement([PaymentTypeEnum::Full->value, PaymentTypeEnum::Part->value]),
+            'payment_method' => $this->faker->randomElement([
+                PaymentMethodEnum::Cash->value,
+                PaymentMethodEnum::BankTransfer->value
+            ]),
             'payment_status' => $this->faker->randomElement([
                 PaymentStatusEnum::Pending->value, 
                 PaymentStatusEnum::Paid->value, 
-                PaymentStatusEnum::Completed->value
+                PaymentStatusEnum::Failed->value
             ]),
         ];
     }

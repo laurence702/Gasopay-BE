@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\PaymentProofController;
+use App\Http\Controllers\Api\PaymentProofController;
 use App\Http\Controllers\PaymentHistoryController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Middleware\BranchAdmin;
@@ -75,16 +75,31 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+
+    // Payment History routes (moved to general auth group)
+    Route::apiResource('payment-histories', PaymentHistoryController::class);
+    Route::post('payment-histories/{paymentHistory}/mark-cash', [PaymentHistoryController::class, 'markCashPayment'])->name('payment-histories.mark-cash');
+    Route::post('payment-histories/{paymentHistory}/proof', [PaymentProofController::class, 'submit'])->name('payment-histories.proof.submit');
 });
 Route::middleware(['auth:sanctum'])->group(function () {
     // Order management routes
     // Route::post('/orders', [OrderController::class, 'createOrder'])->name('branch-admin.create-order');
     Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
     Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
+
+    // Payment routes (REMOVED from here - MOVED to general auth:sanctum group)
+    // Route::apiResource('payment-histories', PaymentHistoryController::class);
+    // Route::post('payment-histories/{paymentHistory}/mark-cash', [PaymentHistoryController::class, 'markCashPayment']);
+
+    // Route::post('payment-histories/{paymentHistory}/proof', [PaymentProofController::class, 'submit']); // Also moved
+    Route::post('payment-proofs/{paymentProof}/approve', [PaymentProofController::class, 'approve']);
+
+    // Delete product
+    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 });
 
 // Super Admin routes
-Route::middleware(['auth:sanctum', \App\Http\Middleware\SuperAdmin::class, ])->group(function () {
+Route::middleware(['auth:sanctum', \App\Http\Middleware\BranchAdmin::class, ])->group(function () {
     Route::post('/create-admin', [UserController::class, 'createAdmin'])->name('users.createAdmin');
     // Branch management routes
     Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
@@ -103,12 +118,11 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\SuperAdmin::class, ])->g
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 
     //Payment routes
-    Route::apiResource('payment-histories', PaymentHistoryController::class);
-    Route::post('payment-histories/{paymentHistory}/mark-cash', [PaymentHistoryController::class, 'markCashPayment']);
+    // Route::apiResource('payment-histories', PaymentHistoryController::class);
+    // Route::post('payment-histories/{paymentHistory}/mark-cash', [PaymentHistoryController::class, 'markCashPayment']);
 
-    Route::post('payment-histories/{paymentHistory}/proof', [PaymentProofController::class, 'submit']);
+    // Route::post('payment-histories/{paymentHistory}/proof', [PaymentProofController::class, 'submit']); // Also moved
     Route::post('payment-proofs/{paymentProof}/approve', [PaymentProofController::class, 'approve']);
-    Route::post('payment-proofs/{paymentProof}/reject', [PaymentProofController::class, 'reject']);
 });
 
 // Branch Admin Dashboard routes
@@ -156,4 +170,21 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\BranchAdmin::class])->pr
     // create Order
     Route::post('/orders', [App\Http\Controllers\Api\OrderController::class, 'createOrder'])
         ->name('branch-admin.create-order');
+});
+
+// Payment proof routes
+Route::middleware('auth:sanctum')->group(function () {
+    // Upload payment proof - available to all authenticated users
+    Route::post('/payment-proofs', [App\Http\Controllers\Api\PaymentProofController::class, 'store'])
+        ->name('payment-proofs.store');
+    
+    // Admin/SuperAdmin only routes
+    Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckAdminOrSuperAdmin::class])->group(function () {
+        Route::get('/payment-proofs', [App\Http\Controllers\Api\PaymentProofController::class, 'index'])
+            ->name('payment-proofs.index');
+        Route::post('/payment-proofs/{paymentProof}/approve', [App\Http\Controllers\Api\PaymentProofController::class, 'approve'])
+            ->name('payment-proofs.approve');
+        Route::post('/payment-proofs/{paymentProof}/reject', [App\Http\Controllers\Api\PaymentProofController::class, 'reject'])
+            ->name('payment-proofs.reject');
+    });
 });

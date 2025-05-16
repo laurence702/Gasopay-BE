@@ -72,6 +72,7 @@ class Kernel extends HttpKernel
         'json.response' => \App\Http\Middleware\ForceJsonResponse::class,
         'superadmin' => \App\Http\Middleware\SuperAdmin::class,
         'role.admin_or_superadmin' => \App\Http\Middleware\CheckAdminOrSuperAdmin::class,
+        'role' => \App\Http\Middleware\RoleMiddleware::class,
     ];
 
     /**

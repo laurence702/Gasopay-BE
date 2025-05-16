@@ -8,10 +8,9 @@ use App\Models\Branch;
 use App\Models\UserProfile;
 use App\Enums\ProfileVerificationStatusEnum;
 use App\Enums\VehicleTypeEnum;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Arr; // Import Arr facade
+use Illuminate\Support\Arr;
 
 class DatabaseSeeder extends Seeder
 {
@@ -19,6 +18,7 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+       if(env('APP_ENV') === 'local'){
         User::factory()->create([
             'fullname' => 'Super Admin User',
             'email' => 'superadmin@example.com',
@@ -74,38 +74,31 @@ class DatabaseSeeder extends Seeder
 
             UserProfile::factory()->create([
                 'user_id' => $rider->id,
-                'phone' => $phone,
                 'vehicle_type' => Arr::random($vehicleTypes),
+                "guarantors_name" => 'guarantor'. $i,
+                "guarantors_phone" => $phone,
+                "guarantors_address" => 'guarantor address'. $i,
+                "address" => 'address'. $i,
+                "profile_pic_url" => '/path/to/image'. $i,
             ]);
         }
+       }
     }
 
-    /**
-     * Generate a unique phone number.
-     * Assumes phone numbers are 10 digits starting with 555.
-     */
     private function generateUniquePhone(): string
     {
         do {
-            // Generate 7 random digits after "555"
             $phone = '555' . random_int(1000000, 9999999);
         } while ($this->phoneExists($phone));
 
-        // Store to used phones to avoid local duplicates during seeding
         $this->usedPhones[] = $phone;
 
         return $phone;
     }
 
-    /**
-     * Check if phone already exists in the database or locally in seeder's used pool.
-     */
     private function phoneExists(string $phone): bool
     {
-        // Check in existing DB records
         $existsInDB = User::where('phone', $phone)->exists();
-
-        // Check in current seeder run array
         $existsInLocal = in_array($phone, $this->usedPhones);
 
         return $existsInDB || $existsInLocal;

@@ -9,12 +9,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Enums\PaymentTypeEnum;
-use App\Traits\Cacheable;
+// use App\Traits\Cacheable; // Temporarily commented out
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PaymentHistory extends Model
 {
-    use HasUuids, HasFactory, Cacheable;
+    use HasFactory, HasUuids, SoftDeletes; // Use SoftDeletes, removed temporary Cacheable comment
 
     protected $fillable = [
         'order_id',
@@ -67,7 +70,7 @@ class PaymentHistory extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    public function paymentProofs()
+    public function paymentProofs(): HasMany
     {
         return $this->hasMany(PaymentProof::class);
     }
@@ -88,6 +91,14 @@ class PaymentHistory extends Model
      */
     protected function getCacheTTL(): int
     {
-        return 900; // 15 minutes for payment histories
+        return 900;
+    }
+
+    public function paymentMethodEnum(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => PaymentMethodEnum::tryFrom($value),
+            set: fn ($value) => $value instanceof PaymentMethodEnum ? $value->value : $value,
+        );
     }
 }

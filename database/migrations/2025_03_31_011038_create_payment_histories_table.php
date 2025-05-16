@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('payment_histories', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('order_id')->constrained('orders')->onDelete('cascade');
-            $table->foreignUlid('payer_id')->constrained('users')->onDelete('restrict'); // Rider, Regular User
+            $table->foreignUlid('user_id')->constrained('users')->onDelete('restrict'); // Rider, Regular User
             $table->decimal('amount', 10, 2);
-            $table->enum('payment_method', ['cash', 'bank_transfer', 'mobile_money', 'wallet']);
-            $table->enum('status', ['pending', 'approved', 'rejected', 'paid', 'completed'])->default('pending');
+            $table->enum('payment_method', ['cash', 'bank', 'bank_transfer', 'mobile_money', 'wallet']);
+            $table->enum('status', ['pending', 'approved', 'rejected', 'paid', 'completed', 'failed'])->default('pending');
             $table->string('reference')->nullable();
-            $table->foreignUlid('approved_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->foreignUlid('approved_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('approved_at')->nullable();
             $table->timestamps();
             $table->softDeletes();

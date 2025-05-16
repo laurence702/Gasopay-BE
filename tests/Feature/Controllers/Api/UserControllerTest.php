@@ -18,6 +18,7 @@ use Laravel\Sanctum\Sanctum;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use App\Enums\ProfileVerificationStatusEnum;
+use App\Enums\PaymentMethodEnum;
 
 class UserControllerTest extends TestCase
 {
@@ -91,16 +92,22 @@ class UserControllerTest extends TestCase
         $branch = Branch::factory()->create(); // Create a branch for the orders
 
         // Create orders for the testUser with the correct fields
-        Order::factory()->for($testUser, 'payer')->for($branch, 'branch')->create([
+        $order1 = Order::factory()->create([
+            'payer_id' => $testUser->id,
+            'branch_id' => $branch->id,
             'amount_due' => 10000,
             'product' => 'cng',
-            'payment_status' => 'pending' // Use payment_status instead of status
+            'payment_status' => 'pending',
+            'payment_method' => PaymentMethodEnum::Cash->value,
         ]);
         
-        Order::factory()->for($testUser, 'payer')->for($branch, 'branch')->create([
+        $order2 = Order::factory()->create([
+            'payer_id' => $testUser->id,
+            'branch_id' => $branch->id,
             'amount_due' => 15000,
             'product' => 'cng',
-            'payment_status' => 'pending' // Use payment_status instead of status
+            'payment_status' => 'pending',
+            'payment_method' => PaymentMethodEnum::Cash->value,
         ]);
 
         $response = $this->getJson('/api/users');

@@ -11,7 +11,8 @@ class UpdatePaymentHistoryRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        // The route parameter is 'payment_history' for apiResource
+        return $this->user()->can('update', $this->route('payment_history'));
     }
 
     /**
@@ -22,7 +23,9 @@ class UpdatePaymentHistoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'status' => 'sometimes|required|string|in:pending,approved,rejected,paid,completed,failed', // Example rule
+            'amount' => 'sometimes|required|numeric|min:0',
+            // Add other updatable fields and their rules
         ];
     }
 }

@@ -2,6 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\Order;
+use App\Models\User;
+use App\Models\PaymentHistory;
+use App\Enums\PaymentMethodEnum;
+use App\Enums\PaymentStatusEnum;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -9,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class PaymentHistoryFactory extends Factory
 {
+    protected $model = PaymentHistory::class;
     /**
      * Define the model's default state.
      *
@@ -16,18 +22,22 @@ class PaymentHistoryFactory extends Factory
      */
     public function definition(): array
     {
+        // Safe payment methods present in both Enum and migration
+        $safePaymentMethods = [
+            PaymentMethodEnum::Cash->value,
+            PaymentMethodEnum::BankTransfer->value,
+            PaymentMethodEnum::Wallet->value,
+        ];
+
         return [
-            'product_id' => '',
-            'payer_id' => '',
-            'approver_id' => '',
-            'branch_id' => '',
-            'amount_due' => '',
-            'amount_paid' => '',
-            'outstanding' => '',
-            'payment_type' => '',
-            'payment_method' => '',
-             'status' => '',
-            'quantity' => '',
+            'order_id' => Order::factory(),
+            'user_id' => User::factory(), // user_id is the payer
+            'amount' => $this->faker->randomFloat(2, 50, 1000), // Sensible default amount
+            'payment_method' => $this->faker->randomElement($safePaymentMethods),
+            'status' => $this->faker->randomElement(PaymentStatusEnum::cases())->value,
+            'reference' => $this->faker->optional()->bothify('REF-##########'),
+            'approved_by' => null, // Default to not approved
+            'approved_at' => null, // Default to not approved
         ];
     }
 }

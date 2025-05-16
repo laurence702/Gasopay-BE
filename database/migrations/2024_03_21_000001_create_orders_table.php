@@ -26,7 +26,7 @@ return new class extends Migration
             $table->decimal('amount_due', 10, 2);
             $table->enum('payment_type', ['full', 'part'])->default('full')->after('amount_due');
             $table->enum('payment_method', ['cash', 'bank_transfer', 'wallet'])->default('cash');
-            $table->enum('payment_status', ['pending', 'paid', 'failed'])->default('pending');
+            $table->enum('payment_status', ['pending', 'paid', 'failed', 'completed', 'approved', 'rejected'])->default('pending');
             $table->timestamps();
             $table->softDeletes();
 

@@ -75,6 +75,7 @@ class User extends Authenticatable
         'role' => RoleEnum::class,
         'verification_status' => ProfileVerificationStatusEnum::class,
         'banned_at' => 'datetime',
+        'balance' => 'decimal:2',
     ];
 
     /**

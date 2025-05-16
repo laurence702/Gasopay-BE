@@ -20,18 +20,17 @@ class BranchFactory extends Factory
 
         $branchPhone = $this->faker->unique()->numerify('333########');
 
-        // Create a branch admin user
         $admin = User::factory()->create([
             'role' => RoleEnum::Admin,
             'fullname' => $name . ' Admin',
             'email' => strtolower(str_replace(' ', '.', $name)) . '.admin@example.com',
-            'phone' => $adminPhone, // Assign the generated, distinct admin phone
+            'phone' => $adminPhone,
         ]);
 
         return [
             'name' => $name,
             'location' => $this->faker->address(),
-            'branch_phone' => $branchPhone, // Assign the distinct branch phone
+            'branch_phone' => $branchPhone,
             'branch_admin' => $admin->id,
         ];
     }

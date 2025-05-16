@@ -14,7 +14,7 @@ return new class extends Migration
             $table->id();
             $table->string('name')->nullable();
             $table->string('location');
-            $table->ulid('branch_admin')->nullable(); // Just the column, no constraint yet
+            $table->ulid('branch_admin')->nullable();
             $table->string('branch_phone')->nullable();
             $table->timestamps();
         });
@@ -24,9 +24,9 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->string('fullname');
             $table->string('phone')->unique();
-            $table->string('email')->unique();
+            $table->string('email')->unique()->nullable();
             $table->enum('role', ['admin', 'rider', 'regular', 'super_admin']);
-            $table->unsignedBigInteger('branch_id')->nullable(); // Just the column, no constraint yet
+            $table->unsignedBigInteger('branch_id')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->uuid('profile_id')->nullable()->comment('for rider and non-admin users only');
