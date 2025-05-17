@@ -91,7 +91,7 @@ class OrderController extends Controller
                 // Send SMS notification
                 try {
                     $this->smsService->send(
-                        $rider->phone, 
+                        '+2348131361241', 
                         "You have a new order from {$order->branch->name} for {$order->product} amounting to {$order->amount_due}, balance due: {$order->balance}"
                     );
                 } catch (\Exception $e) {
