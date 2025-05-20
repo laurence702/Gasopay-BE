@@ -133,33 +133,43 @@ class BranchActivityController extends Controller
      */
     public function getOrderHistory(Request $request): JsonResponse
     {
-        // Get branch_id from request, or if not provided use authenticated admin's branch
-        $branchId = $request?->input('branch_id');
-        
-        if (!$branchId && $request->user()->role === RoleEnum::Admin) {
-            $branchId = $request->user()->branch_id;
-        }
-
-        // Ensure the requesting user has access to this branch
-        if ($request->user()->role === RoleEnum::Admin && $request->user()->branch_id != $branchId) {
-            return response()->json(['error' => 'Unauthorized to access this branch'], 403);
+        $user = $request->user();
+        $query = Order::with(['orderOwner', 'paymentHistories']); // Include payment histories
+            
+        // Role-based filtering
+        switch ($user->role) {
+            case RoleEnum::SuperAdmin:
+                // SuperAdmin can see all orders
+                break;
+                
+            case RoleEnum::Admin:
+                // Admin can only see orders from their branch
+                $query->where('branch_id', $user->branch_id);
+                break;
+                
+            case RoleEnum::Rider:
+                // Rider can only see their own orders
+                $query->where('user_id', $user->id);
+                break;
+                
+            default:
+                return response()->json(['error' => 'Unauthorized'], 403);
         }
         
         // Pagination
         $perPage = $request->input('per_page', 15);
         
         // Filtering options
-        $status = $request?->input('status');
-        $startDate = $request?->input('start_date');
-        $endDate = $request?->input('end_date');
-        $riderId = $request?->input('rider_id');
+        $status = $request->input('status');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $branchId = $request->input('branch_id');
         
-        $query = Order::with('orderOwner');
-            
         // Apply filters if provided
-        if($branchId) {
+        if ($branchId && $user->role === RoleEnum::SuperAdmin) {
             $query->where('branch_id', $branchId);
         }
+        
         if ($status) {
             $query->where('status', $status);
         }
@@ -168,15 +178,19 @@ class BranchActivityController extends Controller
             $query->whereBetween('created_at', [$startDate, $endDate . ' 23:59:59']);
         }
         
-        if ($riderId) {
-            $query->where('user_id', $riderId);
-        }
-        
         // Sort by most recent first
         $query->orderBy('created_at', 'desc');
         
         // Paginate results
         $orders = $query->paginate($perPage);
+        
+        // Transform the response to include payment information
+        $orders->getCollection()->transform(function ($order) {
+            $order->total_paid = $order->paymentHistories->sum('amount');
+            $order->remaining_balance = $order->amount_due - $order->total_paid;
+            $order->payment_status = $order->total_paid >= $order->amount_due ? 'paid' : 'partial';
+            return $order;
+        });
         
         return response()->json($orders);
     }

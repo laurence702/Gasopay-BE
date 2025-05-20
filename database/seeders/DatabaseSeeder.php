@@ -18,7 +18,6 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-       if(env('APP_ENV') === 'local'){
         User::factory()->create([
             'fullname' => 'Super Admin User',
             'email' => 'superadmin@example.com',
@@ -83,7 +82,6 @@ class DatabaseSeeder extends Seeder
             ]);
         }
        }
-    }
 
     private function generateUniquePhone(): string
     {

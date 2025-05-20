@@ -139,9 +139,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\BranchAdmin::class])->pr
     Route::get('/activities', [App\Http\Controllers\Api\BranchActivityController::class, 'getRecentActivities'])
         ->name('branch-admin.activities');
     
-    // Order history
-    Route::get('/order-history', [App\Http\Controllers\Api\BranchActivityController::class, 'getOrderHistory'])
-        ->name('branch-admin.order-history');
+    // Order history - accessible to all authenticated users
+    Route::get('/orders/history', [App\Http\Controllers\Api\BranchActivityController::class, 'getOrderHistory'])
+        ->name('orders.history');
     
     // Riders management
     Route::get('/riders', [App\Http\Controllers\Api\BranchRiderController::class, 'getRiders'])
