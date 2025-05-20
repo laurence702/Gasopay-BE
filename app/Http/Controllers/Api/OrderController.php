@@ -68,10 +68,11 @@ class OrderController extends Controller
                         ? PaymentStatusEnum::Paid 
                         : PaymentStatusEnum::Pending,
                 ]);
+                $order ? Log::info('Order', $order) : '';
                 
                 // Create payment history for the initial payment
                 if ($data['amount_paid'] > 0) {
-                    PaymentHistory::create([
+                   $payment_history =  PaymentHistory::create([
                         'order_id' => $order->id,
                         'user_id' => $data['payer_id'],
                         'amount' => $data['amount_paid'],
@@ -80,6 +81,7 @@ class OrderController extends Controller
                         'approved_by' => $request->user()->id,
                         'approved_at' => now(),
                     ]);
+                    $payment_history ? Log::info('payment_history', $payment_history) : '';
                 }
                 
                 // Update rider balance if partial payment
@@ -91,7 +93,7 @@ class OrderController extends Controller
                 // Send SMS notification
                 try {
                     $this->smsService->send(
-                        '+2348131361241', 
+                        $rider->phone, 
                         "You have a new order from {$order->branch->name} for {$order->product} amounting to {$order->amount_due}, balance due: {$order->balance}"
                     );
                 } catch (\Exception $e) {
