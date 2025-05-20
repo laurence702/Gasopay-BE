@@ -32,8 +32,7 @@ WORKDIR /var/www
 # Copy existing application directory
 COPY . .
 
-# Install dependencies
-RUN composer install --no-interaction --no-dev --optimize-autoloader
+RUN composer install --no-interaction --optimize-autoloader
 
 # Copy Nginx configuration
 COPY nginx.conf /etc/nginx/sites-available/default
