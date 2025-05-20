@@ -18,21 +18,25 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        // Create super admin with a unique phone number
+        $superAdminPhone = $this->generateUniquePhone();
         User::factory()->create([
             'fullname' => 'Super Admin User',
             'email' => 'superadmin@example.com',
-            'phone' => '1110001111',
+            'phone' => $superAdminPhone,
             'password' => Hash::make('password'),
             'role' => RoleEnum::SuperAdmin,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
+        // Create branches and their admins
         $branches = Branch::factory()->count(5)->create()->each(function ($branch) {
+            $adminPhone = $this->generateUniquePhone();
             User::factory()->create([
                 'fullname' => $branch->name . ' Admin',
                 'email' => strtolower(str_replace(' ', '', $branch->name)) . '@example.com',
-                'phone' => $branch->branch_phone,
+                'phone' => $adminPhone,
                 'password' => Hash::make('password'),
                 'role' => RoleEnum::Admin,
                 'branch_id' => $branch->id,
@@ -51,17 +55,16 @@ class DatabaseSeeder extends Seeder
             VehicleTypeEnum::Keke,
         ];
 
+        // Create riders
         for ($i = 1; $i <= 10; $i++) {
             $isBanned = $i <= 2;
             $verificationStatus = Arr::random($verificationStatuses);
-
-            // Generate a unique phone number
-            $phone = $this->generateUniquePhone();
+            $riderPhone = $this->generateUniquePhone();
 
             $rider = User::factory()->create([
                 'fullname' => 'Rider User ' . $i,
                 'email' => 'rider' . $i . '@example.com',
-                'phone' => $phone,
+                'phone' => $riderPhone,
                 'password' => Hash::make('password'),
                 'role' => RoleEnum::Rider,
                 'branch_id' => $branches->random()->id,
@@ -75,13 +78,13 @@ class DatabaseSeeder extends Seeder
                 'user_id' => $rider->id,
                 'vehicle_type' => Arr::random($vehicleTypes),
                 "guarantors_name" => 'guarantor'. $i,
-                "guarantors_phone" => $phone,
+                "guarantors_phone" => $this->generateUniquePhone(), // Generate unique phone for guarantor
                 "guarantors_address" => 'guarantor address'. $i,
                 "address" => 'address'. $i,
                 "profile_pic_url" => '/path/to/image'. $i,
             ]);
         }
-       }
+    }
 
     private function generateUniquePhone(): string
     {
@@ -90,7 +93,6 @@ class DatabaseSeeder extends Seeder
         } while ($this->phoneExists($phone));
 
         $this->usedPhones[] = $phone;
-
         return $phone;
     }
 
@@ -98,7 +100,6 @@ class DatabaseSeeder extends Seeder
     {
         $existsInDB = User::where('phone', $phone)->exists();
         $existsInLocal = in_array($phone, $this->usedPhones);
-
         return $existsInDB || $existsInLocal;
     }
 }
