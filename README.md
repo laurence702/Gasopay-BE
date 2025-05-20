@@ -6,7 +6,7 @@ A Laravel-based API for managing product payments
 
 - PHP 8.2 or higher
 - Composer
-- MySQL 8.0 or higher
+- Postgres
 - Node.js and NPM (for frontend assets)
 - Docker and Docker Compose (optional, for containerized development)
 
