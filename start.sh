@@ -1,11 +1,22 @@
-#!/bin/sh
+#!/bin/bash
 
 # Exit on error
 set -e
 
-# Run database migrations and seed the database
-echo "Running database migrations and seeding..."
-php artisan migrate --force --seed
+# Wait for database to be ready
+echo "Waiting for database to be ready..."
+while ! nc -z $DB_HOST $DB_PORT; do
+  sleep 1
+done
+echo "Database is ready!"
+
+# Run database migrations
+echo "Running database migrations..."
+php artisan migrate --force
+
+# Run database seeding
+echo "Seeding the database..."
+php artisan db:seed --force
 
 # Start PHP-FPM in the background
 echo "Starting PHP-FPM..."
