@@ -19,16 +19,16 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Create super admin with a unique phone number
-        $superAdminPhone = $this->generateUniquePhone();
-        User::factory()->create([
-            'fullname' => 'Super Admin',
-            'email' => 'test@example.com',
-            'phone' => $superAdminPhone,
-            'password' => Hash::make('password'),
-            'role' => RoleEnum::SuperAdmin,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // $superAdminPhone = $this->generateUniquePhone();
+        // User::factory()->create([
+        //     'fullname' => 'Super Admin',
+        //     'email' => 'test@example.com',
+        //     'phone' => $superAdminPhone,
+        //     'password' => Hash::make('password'),
+        //     'role' => RoleEnum::SuperAdmin,
+        //     'created_at' => now(),
+        //     'updated_at' => now(),
+        // ]);
 
         // Create branches and their admins
         // $branches = Branch::factory()->count(5)->create()->each(function ($branch) {
