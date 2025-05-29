@@ -72,7 +72,7 @@ class UserController extends Controller
         $validated['role'] = RoleEnum::Rider;
         $validated['ip_address'] = $request->getClientIp();
         try {
-            $user = DB::transaction(function () use ($validated) {
+            $user = DB::transaction(function () use ($validated, $request) {
                 $user = User::create($validated);
 
                 $user->userProfile()->create([
@@ -81,6 +81,7 @@ class UserController extends Controller
                     'nin' => $validated['nin'],
                     'guarantors_name' => $validated['guarantors_name'],
                     'guarantors_address' => $validated['guarantors_address'],
+                    'branch_id' => $request->user()->branch_id,
                     'guarantors_phone' => $validated['guarantors_phone'],
                     'vehicle_type' => $validated['vehicle_type'],
                     'profile_pic_url' => $validated['profilePicUrl'],
@@ -99,7 +100,6 @@ class UserController extends Controller
                 );
             } catch (\Exception $e) {
                 Log::warning('Failed to send welcome SMS: ' . $e->getMessage());
-                // Continue execution even if SMS fails
             }
 
             Cache::flush();
@@ -143,7 +143,7 @@ class UserController extends Controller
         $cacheKey = "user:{$user->id}";
 
         $data = Cache::remember($cacheKey, 300, function () use ($user) {
-            return new UserResource($user->load(['branch', 'userProfile']));
+            return new UserResource($user->load(['branch', 'userProfile'])->loadCount('orders'));
         });
 
         return $this->successResponse($data, 'User retrieved successfully.');

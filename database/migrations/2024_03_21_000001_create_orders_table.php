@@ -19,6 +19,7 @@ return new class extends Migration
 
         Schema::create('orders', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->string('order_reference', 14)->unique()->nullable();
             $table->foreignUlid('payer_id')->constrained('users')->cascadeOnDelete()->comment('e.g rider, user');
             $table->ulid('created_by')->nullable()->after('payer_id');
             $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
@@ -31,6 +32,7 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->index('payer_id');
+            $table->index('order_reference');
         });
     }
 

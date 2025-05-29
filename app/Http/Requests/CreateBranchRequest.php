@@ -2,16 +2,18 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\RoleEnum;
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateBranchRequest extends FormRequest
+class CreateBranchRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+        return $user && $user->role == RoleEnum::SuperAdmin;
     }
 
     /**
@@ -25,6 +27,8 @@ class UpdateBranchRequest extends FormRequest
             'name' => 'required|string|max:255',
             'location' => 'required|string|max:255',
             'branch_phone' => 'required|string|max:20',
+            'email' => 'nullable|email|unique:users,email',
+            'password' => 'nullable|string|min:8',
         ];
     }
-}
+} 

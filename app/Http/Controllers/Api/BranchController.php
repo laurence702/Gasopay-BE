@@ -17,56 +17,53 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Foundation\Validation\ValidatesRequests;
+use App\Http\Requests\CreateBranchRequest;
+use App\Http\Requests\UpdateBranchRequest;
 
 class BranchController extends BaseController
 {
     use AuthorizesRequests, ValidatesRequests;
 
-    public function index(Request $request)
+    public function index()
     {
+        $this->authorize('viewAny', Branch::class);
         $branches = Branch::query()
             ->with('branchAdmin')
-            ->when($request->search, function ($query, $search) {
+            ->when(request()->search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('location', 'like', "%{$search}%")
-                    ->orWhere('branch_phone', 'like', "%{$search}%");
+                    ->orWhere('location', 'like', "%{$search}%");
             })
             ->paginate(10);
 
-        return new BranchCollection($branches);
+        return BranchResource::collection($branches);
     }
 
-    public function store(Request $request)
+    /**
+     * Store a newly created branch in storage.
+     */
+    public function store(CreateBranchRequest $request)
     {
-        try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'location' => 'required|string|max:255',
-                'branch_phone' => 'required|string|max:20',
-            ]);
+        $this->authorize('create', Branch::class);
+        
+        $validated = $request->validated();
 
-            // Create a new admin user for the branch
-            $admin = User::factory()->create([
-                'role' => RoleEnum::Admin,
-                'fullname' => $validated['name'] . ' Admin',
-                'email' => strtolower(str_replace(' ', '.', $validated['name'])) . '.admin@example.com',
-                'phone' => $validated['branch_phone'],
-            ]);
+        // Create a new admin user for the branch
+        $admin = User::create([
+            'name' => $validated['name'] . ' Admin',
+            'email' => $validated['email'] ?? strtolower(str_replace(' ', '', $validated['name'])) . '@gasopay.com',
+            'password' => bcrypt($validated['password'] ?? 'password'),
+            'role' => 'Admin',
+        ]);
 
-            $validated['branch_admin'] = $admin->id;
-            $branch = Branch::create($validated);
+        // Create the branch
+        $branch = Branch::create([
+            'name' => $validated['name'],
+            'location' => $validated['location'],
+            'branch_phone' => $validated['branch_phone'],
+            'branch_admin' => $admin->id,
+        ]);
 
-            return new BranchResource($branch->load('branchAdmin'));
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => 'The given data was invalid.',
-                'errors' => $e->errors(),
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
-        } catch (AuthorizationException $e) {
-            return response()->json([
-                'message' => 'You are not authorized to perform this action.',
-            ], Response::HTTP_FORBIDDEN);
-        }
+        return new BranchResource($branch->load('branchAdmin'));
     }
 
     /**
@@ -82,44 +79,45 @@ class BranchController extends BaseController
         ], Response::HTTP_NOT_FOUND);
     }
 
+    /**
+     * Display the specified branch.
+     */
     public function show(Branch $branch)
     {
+        $this->authorize('view', $branch);
         try {
             return new BranchResource($branch->load('branchAdmin'));
-        } catch (ModelNotFoundException $e) {
-            return $this->notFound();
-        }
-    }
-
-    public function update(Request $request, Branch $branch)
-    {
-        try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'location' => 'required|string|max:255',
-                'branch_phone' => 'required|string|max:20',
-            ]);
-
-            $branch->update($validated);
-            return new BranchResource($branch->load('branchAdmin'));
-        } catch (ValidationException $e) {
+        } catch (\Exception $e) {
             return response()->json([
-                'message' => 'The given data was invalid.',
-                'errors' => $e->errors(),
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
-        } catch (ModelNotFoundException $e) {
-            return $this->notFound();
+                'message' => 'Failed to retrieve branch',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 
+    /**
+     * Update the specified branch in storage.
+     */
+    public function update(UpdateBranchRequest $request, Branch $branch)
+    {
+        $this->authorize('update', $branch);
+        
+        $validated = $request->validated();
+        $branch->update($validated);
+        
+        return new BranchResource($branch->load('branchAdmin'));
+    }
+
+    /**
+     * Remove the specified branch from storage.
+     */
     public function destroy(Branch $branch)
     {
-        try {
-            User::where('id', $branch->branch_admin)->delete();
-            $branch->delete();
-            return response()->noContent();
-        } catch (ModelNotFoundException $e) {
-            return $this->notFound();
-        }
+        $this->authorize('delete', $branch);
+        
+        User::where('id', $branch->branch_admin)->delete();
+        $branch->delete();
+        
+        return response()->json(null, 204);
     }
 }

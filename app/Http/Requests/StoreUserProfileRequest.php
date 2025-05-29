@@ -25,7 +25,7 @@ class StoreUserProfileRequest extends FormRequest
             'phone' => ['required', 'string', 'max:20'],
             'address' => ['required', 'string', 'max:255'],
             'vehicle_type' => ['sometimes', new Enum(VehicleTypeEnum::class)],
-            'nin' => ['required', 'string', 'max:20'],
+            'nin' => ['nullable', 'string', 'max:20', 'unique:user_profiles,nin'],
             'guarantors_name' => ['required', 'string', 'max:255'],
             'guarantors_address' => ['required', 'string', 'max:255'],
             'guarantors_phone' => ['required', 'string', 'max:20'],
