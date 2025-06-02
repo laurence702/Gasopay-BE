@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\PaymentProofController;
 use App\Http\Controllers\PaymentHistoryController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Middleware\BranchAdmin;
+use App\Http\Middleware\CheckAdminOrSuperAdmin;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,12 +32,13 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 Route::get('/me', [AuthController::class, 'loggedInUser'])->middleware('auth:sanctum')->name('user');
 
 Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
+Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::middleware(['throttle:60,1'])->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
-        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+       // Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update'); // This will be for user self-update later
       //  Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
        
     });
@@ -47,12 +49,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/users/{id}/restore', [UserController::class, 'restore'])->withTrashed()->name('users.restore');
         Route::delete('/users/{id}/force', [UserController::class, 'forceDelete'])->withTrashed()->name('users.forceDelete');
         Route::post('/users/{user}/ban', [UserController::class, 'ban'])
-            ->middleware(\App\Http\Middleware\CheckAdminOrSuperAdmin::class)
             ->name('users.ban');
+        Route::post('/users/{user}/unban', [UserController::class, 'unban'])
+            ->name('users.unban');
     });
 
     Route::put('/riders/verification', [UserController::class, 'updateVerificationStatus'])
-        ->middleware(\App\Http\Middleware\CheckAdminOrSuperAdmin::class)
         ->name('users.update_verification_status');
 
     // Product routes
@@ -67,7 +69,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/user-profiles/{userProfile}', [UserProfileController::class, 'destroy'])->name('user-profiles.destroy');
 
     // Branch routes - accessible to all authenticated users
-    Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
+    // Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
     Route::get('/branches/{branch}', [BranchController::class, 'show'])
         ->missing(function () {
             return response()->json(['message' => 'Branch not found.'], 404);
@@ -99,8 +101,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 // Super Admin routes
-Route::middleware(['auth:sanctum', \App\Http\Middleware\BranchAdmin::class, ])->group(function () {
-    Route::post('/create-admin', [UserController::class, 'createAdmin'])->name('users.createAdmin');
+Route::middleware(['auth:sanctum', SuperAdmin::class])->prefix('super-admin')->group(function () {
+    // User management - Super Admin can update any user
+    Route::put('/users/{user}', [UserController::class, 'superAdminUpdate'])->name('super-admin.users.update');
+
     // Branch management routes
     Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
     Route::put('/branches/{branch}', [BranchController::class, 'update'])
@@ -155,6 +159,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\BranchAdmin::class])->pr
     Route::put('/riders/{id}/verification', [App\Http\Controllers\Api\BranchRiderController::class, 'updateVerificationStatus'])
         ->name('branch-admin.update-verification');
 
+    // Update rider information by Branch Admin
+    Route::put('/riders/{user}', [UserController::class, 'branchAdminUpdateRider'])->name('branch-admin.riders.update');
+
     // Product Management
     Route::get('/products', [App\Http\Controllers\Api\BranchProductController::class, 'getProducts'])
         ->name('branch-admin.products');
@@ -179,7 +186,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('payment-proofs.store');
     
     // Admin/SuperAdmin only routes
-    Route::middleware(['auth:sanctum', \App\Http\Middleware\CheckAdminOrSuperAdmin::class])->group(function () {
+    Route::middleware(['auth:sanctum', CheckAdminOrSuperAdmin::class])->group(function () {
         Route::get('/payment-proofs', [App\Http\Controllers\Api\PaymentProofController::class, 'index'])
             ->name('payment-proofs.index');
         Route::post('/payment-proofs/{paymentProof}/approve', [App\Http\Controllers\Api\PaymentProofController::class, 'approve'])

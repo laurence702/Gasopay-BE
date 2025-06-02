@@ -11,15 +11,21 @@ use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Branch;
 
 class AuthControllerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected $branch1;
+    protected $branch2;
+
     protected function setUp(): void
     {
         parent::setUp();
         Mail::fake();
+        $this->branch1 = Branch::factory()->create();
+        $this->branch2 = Branch::factory()->create();
     }
 
     public function test_regular_user_can_register_with_profile()
@@ -31,9 +37,12 @@ class AuthControllerTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'role' => RoleEnum::Regular->value,
+            'branch_id' => $this->branch1->id,
             'address' => '123 Test St',
             'nin' => '123456789',
             'guarantors_name' => 'Test Guarantor',
+            'guarantors_address' => '456 Guarantor Ave',
+            'guarantors_phone' => '5551234567',
         ];
 
         $response = $this->postJson('/api/register', $userData);
@@ -52,10 +61,13 @@ class AuthControllerTest extends TestCase
                     'email',
                     'phone',
                     'role',
+                    'branch_id',
                     'user_profile' => [
                         'address',
                         'nin',
                         'guarantors_name',
+                        'guarantors_address',
+                        'guarantors_phone',
                     ],
                 ],
             ]);
@@ -64,12 +76,15 @@ class AuthControllerTest extends TestCase
             'email' => 'test@example.com',
             'phone' => '1234567890',
             'role' => RoleEnum::Regular->value,
+            'branch_id' => $this->branch1->id,
         ]);
 
         $this->assertDatabaseHas('user_profiles', [
             'address' => '123 Test St',
             'nin' => '123456789',
             'guarantors_name' => 'Test Guarantor',
+            'guarantors_address' => '456 Guarantor Ave',
+            'guarantors_phone' => '5551234567',
         ]);
     }
 
@@ -82,10 +97,14 @@ class AuthControllerTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'role' => RoleEnum::Rider->value,
+            'branch_id' => $this->branch2->id,
             'address' => '456 Rider St',
             'nin' => '987654321',
             'guarantors_name' => 'Rider Guarantor',
+            'guarantors_address' => '789 Guarantor St',
+            'guarantors_phone' => '5559876543',
             'vehicle_type' => VehicleTypeEnum::Car->value,
+            'profilePicUrl' => 'http://example.com/pic.jpg',
         ];
 
         $response = $this->postJson('/api/register', $userData);
@@ -104,11 +123,15 @@ class AuthControllerTest extends TestCase
                     'email',
                     'phone',
                     'role',
+                    'branch_id',
                     'user_profile' => [
                         'address',
                         'nin',
                         'guarantors_name',
+                        'guarantors_address',
+                        'guarantors_phone',
                         'vehicle_type',
+                        'profile_pic_url',
                     ],
                 ],
             ]);
@@ -117,13 +140,17 @@ class AuthControllerTest extends TestCase
             'email' => 'rider@example.com',
             'phone' => '0987654321',
             'role' => RoleEnum::Rider->value,
+            'branch_id' => $this->branch2->id,
         ]);
 
         $this->assertDatabaseHas('user_profiles', [
             'address' => '456 Rider St',
             'nin' => '987654321',
             'guarantors_name' => 'Rider Guarantor',
+            'guarantors_address' => '789 Guarantor St',
+            'guarantors_phone' => '5559876543',
             'vehicle_type' => VehicleTypeEnum::Car->value,
+            'profile_pic_url' => 'http://example.com/pic.jpg',
         ]);
     }
 
@@ -136,6 +163,7 @@ class AuthControllerTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'role' => RoleEnum::Admin->value,
+            'branch_id' => $this->branch1->id,
         ];
 
         $response = $this->postJson('/api/register', $userData);
@@ -154,6 +182,7 @@ class AuthControllerTest extends TestCase
                     'email',
                     'phone',
                     'role',
+                    'branch_id',
                     'user_profile',
                 ],
             ]);
@@ -182,7 +211,14 @@ class AuthControllerTest extends TestCase
         $response = $this->postJson('/api/register', $userData);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['address', 'vehicle_type', 'nin', 'guarantors_name']);
+            ->assertJsonValidationErrors([
+                'address',
+                'vehicle_type',
+                'nin',
+                'guarantors_name',
+                'guarantors_address',
+                'guarantors_phone',
+            ]);
 
         $this->assertDatabaseMissing('users', [
             'email' => 'test@example.com',
@@ -199,6 +235,7 @@ class AuthControllerTest extends TestCase
             'phone' => '1234567890',
             'password' => Hash::make('password123'),
             'role' => RoleEnum::Regular->value,
+            'branch_id' => $this->branch1->id,
         ]);
 
         $response = $this->postJson('/api/login', [
@@ -227,6 +264,7 @@ class AuthControllerTest extends TestCase
             'phone' => '1234567890',
             'password' => Hash::make('password123'),
             'role' => RoleEnum::Regular->value,
+            'branch_id' => $this->branch2->id,
         ]);
 
         $response = $this->postJson('/api/login', [
@@ -253,6 +291,7 @@ class AuthControllerTest extends TestCase
             'email' => 'test@example.com',
             'phone' => '1234567890',
             'password' => Hash::make('password123'),
+            'branch_id' => $this->branch1->id,
         ]);
 
         $response = $this->postJson('/api/login', [
@@ -285,7 +324,9 @@ class AuthControllerTest extends TestCase
 
     public function test_authenticated_user_can_get_their_information()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'branch_id' => $this->branch1->id,
+        ]);
         Sanctum::actingAs($user);
 
         $response = $this->getJson('/api/me');
@@ -298,13 +339,16 @@ class AuthControllerTest extends TestCase
                     'email',
                     'phone',
                     'role',
+                    'branch_id',
                 ]
             ]);
     }
 
     public function test_authenticated_user_can_logout()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'branch_id' => $this->branch2->id,
+        ]);
         Sanctum::actingAs($user);
 
         $response = $this->postJson('/api/logout');

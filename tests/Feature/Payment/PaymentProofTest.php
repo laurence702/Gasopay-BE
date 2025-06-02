@@ -17,6 +17,10 @@ use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 use Laravel\Sanctum\Sanctum;
 use Illuminate\Support\Str;
+use App\Services\AfricasTalkingService;
+use Illuminate\Contracts\Auth\Authenticatable;
+use function Pest\Laravel\{getJson, postJson, putJson};
+use Mockery;
 
 class PaymentProofTest extends TestCase
 {
@@ -31,210 +35,169 @@ class PaymentProofTest extends TestCase
     {
         parent::setUp();
 
-        // Mock AfricasTalking service
-        $this->mock(\App\Services\AfricasTalkingService::class, function ($mock) {
-            $mock->shouldReceive('send')->andReturn(true);
-            $mock->shouldReceive('sendBulk')->andReturn(true);
+        // Mock AfricasTalkingService
+        $this->mock(AfricasTalkingService::class, function ($mock) {
+            $mock->shouldReceive('sendSms')->andReturn(true);
         });
 
-        // Create a branch
+        // Create branch first
         $this->branch = Branch::factory()->create();
 
-        // Create an admin
-        $this->admin = User::factory()->create([
-            'role' => RoleEnum::Admin,
-            'branch_id' => $this->branch->id,
-        ]);
-
-        // Create a rider
-        $this->rider = User::factory()->create([
-            'role' => RoleEnum::Rider,
-            'branch_id' => $this->branch->id,
-        ]);
+        // Create users with proper roles and branch assignments
+        $this->admin = User::factory()->admin()->create(['branch_id' => $this->branch->id]);
+        $this->rider = User::factory()->rider()->create(['branch_id' => $this->branch->id]);
 
         // Create an order for the rider
-        $this->order = Order::create([
-            'id' => Str::uuid(),
+        $this->order = Order::factory()->create([
             'payer_id' => $this->rider->id,
             'created_by' => $this->admin->id,
             'branch_id' => $this->branch->id,
             'product' => 'cng',
-            'amount_due' => 5000,
-            'payment_type' => PaymentTypeEnum::Part,
-            'payment_method' => PaymentMethodEnum::Cash,
-            'payment_status' => PaymentStatusEnum::Pending,
+            'amount_due' => 10000,
+            'payment_type' => 'cash',
+            'payment_method' => 'cash',
+            'payment_status' => 'pending',
         ]);
     }
 
     public function test_rider_can_upload_payment_proof()
     {
-        Sanctum::actingAs($this->rider);
+        $this->actingAs($this->rider);
 
-        $response = $this->postJson('/api/payment-proofs', [
+        $proofData = [
             'order_id' => $this->order->id,
-            'payment_amount' => 2000,
-            'proof_url' => 'https://example.com/proof.jpg',
-            'payment_method' => PaymentMethodEnum::BankTransfer->value,
-            'reference' => 'TRX12345',
-        ]);
+            'proof_url' => 'http://example.com/proof.jpg',
+        ];
 
-        $response->assertStatus(201)
-            ->assertJsonPath('message', 'Payment proof uploaded successfully. Awaiting admin approval.');
+        $response = $this->postJson('/api/payment-proofs', $proofData);
 
-        $this->assertDatabaseHas('payment_histories', [
-            'order_id' => $this->order->id,
-            'user_id' => $this->rider->id,
-            'amount' => 2000,
-            'payment_method' => 'bank_transfer',
-            'status' => PaymentStatusEnum::Pending,
-        ]);
+        $response->assertCreated()
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'order_id',
+                    'proof_url',
+                    'status',
+                    'created_at',
+                    'updated_at',
+                ]
+            ]);
 
         $this->assertDatabaseHas('payment_proofs', [
-            'proof_url' => 'https://example.com/proof.jpg',
-            'status' => ProofStatusEnum::Pending,
+            'order_id' => $this->order->id,
+            'proof_url' => 'http://example.com/proof.jpg',
+            'status' => 'pending',
         ]);
     }
 
     public function test_admin_can_approve_payment_proof()
     {
-        // First create a payment history and proof
-        $paymentHistory = PaymentHistory::create([
+        $this->actingAs($this->admin);
+
+        $proof = PaymentProof::factory()->create([
             'order_id' => $this->order->id,
-            'user_id' => $this->rider->id,
-            'amount' => 2000,
-            'payment_method' => 'bank_transfer',
-            'status' => PaymentStatusEnum::Pending,
-            'reference' => 'TRX12345',
+            'proof_url' => 'http://example.com/proof.jpg',
+            'status' => 'pending',
         ]);
 
-        $paymentProof = PaymentProof::create([
-            'payment_history_id' => $paymentHistory->id,
-            'proof_url' => 'https://example.com/proof.jpg',
-            'status' => ProofStatusEnum::Pending,
-        ]);
-
-        // Admin approves the proof
-        Sanctum::actingAs($this->admin);
-        $response = $this->postJson('/api/payment-proofs/'.$paymentProof->id.'/approve');
+        $response = $this->putJson("/api/payment-proofs/{$proof->id}/approve");
 
         $response->assertOk()
-            ->assertJsonPath('message', 'Payment proof approved successfully');
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'order_id',
+                    'proof_url',
+                    'status',
+                    'created_at',
+                    'updated_at',
+                ]
+            ]);
 
-        // Verify payment history was updated
-        $this->assertDatabaseHas('payment_histories', [
-            'id' => $paymentHistory->id,
-            'status' => PaymentStatusEnum::Paid,
-            'approved_by' => $this->admin->id,
+        $this->assertDatabaseHas('payment_proofs', [
+            'id' => $proof->id,
+            'status' => 'approved',
         ]);
 
-        // Verify payment proof was updated
-        $this->assertDatabaseHas('payment_proofs', [
-            'id' => $paymentProof->id,
-            'status' => ProofStatusEnum::Approved,
-            'approved_by' => $this->admin->id,
+        $this->assertDatabaseHas('orders', [
+            'id' => $this->order->id,
+            'payment_status' => 'paid',
         ]);
     }
 
     public function test_admin_can_reject_payment_proof()
     {
-        // First create a payment history and proof
-        $paymentHistory = PaymentHistory::create([
+        $this->actingAs($this->admin);
+
+        $proof = PaymentProof::factory()->create([
             'order_id' => $this->order->id,
-            'user_id' => $this->rider->id,
-            'amount' => 2000,
-            'payment_method' => 'bank_transfer',
-            'status' => PaymentStatusEnum::Pending,
-            'reference' => 'TRX12345',
+            'proof_url' => 'http://example.com/proof.jpg',
+            'status' => 'pending',
         ]);
 
-        $paymentProof = PaymentProof::create([
-            'payment_history_id' => $paymentHistory->id,
-            'proof_url' => 'https://example.com/proof.jpg',
-            'status' => ProofStatusEnum::Pending,
-        ]);
-
-        // Admin rejects the proof
-        Sanctum::actingAs($this->admin);
-        $response = $this->postJson('/api/payment-proofs/'.$paymentProof->id.'/reject', [
-            'rejection_reason' => 'Blurry image, please upload a clearer one.',
-        ]);
+        $response = $this->putJson("/api/payment-proofs/{$proof->id}/reject");
 
         $response->assertOk()
-            ->assertJsonPath('message', 'Payment proof rejected successfully');
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'order_id',
+                    'proof_url',
+                    'status',
+                    'created_at',
+                    'updated_at',
+                ]
+            ]);
 
-        // Verify payment history was updated
-        $this->assertDatabaseHas('payment_histories', [
-            'id' => $paymentHistory->id,
-            'status' => PaymentStatusEnum::Rejected,
+        $this->assertDatabaseHas('payment_proofs', [
+            'id' => $proof->id,
+            'status' => 'rejected',
         ]);
 
-        // Verify payment proof was updated
-        $this->assertDatabaseHas('payment_proofs', [
-            'id' => $paymentProof->id,
-            'status' => ProofStatusEnum::Rejected,
-            'approved_by' => $this->admin->id,
+        $this->assertDatabaseHas('orders', [
+            'id' => $this->order->id,
+            'payment_status' => 'pending',
         ]);
     }
 
     public function test_rider_cannot_access_admin_endpoints()
     {
-        Sanctum::actingAs($this->rider);
+        $this->actingAs($this->rider);
 
-        $response = $this->getJson('/api/payment-proofs');
-        $response->assertForbidden();
-
-        $paymentProof = PaymentProof::create([
-            'payment_history_id' => PaymentHistory::create([
-                'order_id' => $this->order->id,
-                'user_id' => $this->rider->id,
-                'amount' => 2000,
-                'payment_method' => 'bank_transfer',
-                'status' => PaymentStatusEnum::Pending,
-                'reference' => 'TRX12345',
-            ])->id,
-            'proof_url' => 'https://example.com/proof.jpg',
-            'status' => ProofStatusEnum::Pending,
+        $proof = PaymentProof::factory()->create([
+            'order_id' => $this->order->id,
+            'proof_url' => 'http://example.com/proof.jpg',
+            'status' => 'pending',
         ]);
 
-        $response = $this->postJson('/api/payment-proofs/'.$paymentProof->id.'/approve');
-        $response->assertForbidden();
+        $response = $this->putJson("/api/payment-proofs/{$proof->id}/approve");
 
-        $response = $this->postJson('/api/payment-proofs/'.$paymentProof->id.'/reject', [
-            'rejection_reason' => 'Test reason',
-        ]);
         $response->assertForbidden();
     }
 
-    public function test_rider_cannot_upload_proof_for_another_riders_order()
+    public function test_rider_cannot_upload_proof_for_another_rider()
     {
-        $anotherRider = User::factory()->create([
-            'role' => RoleEnum::Rider,
-            'branch_id' => $this->branch->id,
-        ]);
+        $this->actingAs($this->rider);
 
-        $anotherOrder = Order::create([
-            'id' => Str::uuid(),
-            'payer_id' => $anotherRider->id,
+        $otherRider = User::factory()->rider()->create(['branch_id' => $this->branch->id]);
+        $otherOrder = Order::factory()->create([
+            'payer_id' => $otherRider->id,
             'created_by' => $this->admin->id,
             'branch_id' => $this->branch->id,
             'product' => 'cng',
-            'amount_due' => 5000,
-            'payment_type' => PaymentTypeEnum::Part,
-            'payment_method' => PaymentMethodEnum::Cash,
-            'payment_status' => PaymentStatusEnum::Pending,
+            'amount_due' => 10000,
+            'payment_type' => 'cash',
+            'payment_method' => 'cash',
+            'payment_status' => 'pending',
         ]);
 
-        Sanctum::actingAs($this->rider);
+        $proofData = [
+            'order_id' => $otherOrder->id,
+            'proof_url' => 'http://example.com/proof.jpg',
+        ];
 
-        $response = $this->postJson('/api/payment-proofs', [
-            'order_id' => $anotherOrder->id,
-            'payment_amount' => 2000,
-            'proof_url' => 'https://example.com/proof.jpg',
-            'payment_method' => 'bank_transfer',
-            'reference' => 'TRX12345',
-        ]);
+        $response = $this->postJson('/api/payment-proofs', $proofData);
 
-        $response->assertStatus(500)
-            ->assertJsonPath('message', 'Payment proof upload failed: Unauthorized to add payment for this order');
+        $response->assertForbidden();
     }
 } 

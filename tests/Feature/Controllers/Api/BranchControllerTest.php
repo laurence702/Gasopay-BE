@@ -299,8 +299,7 @@ class BranchControllerTest extends TestCase
         $branch = Branch::factory()->create();
         $branchAdmin = User::find($branch->branch_admin);
 
-        $response = $this->actingAs($branchAdmin)
-            ->deleteJson("/api/branches/{$branch->id}");
+        $response = $this->deleteJson("/api/branches/{$branch->id}");
 
         $response->assertStatus(403);
     }

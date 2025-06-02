@@ -150,6 +150,28 @@ class User extends Authenticatable
         return $query->whereNotNull('deleted_at');
     }
 
+    /**
+     * Scope a query to only include banned users.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeBanned($query)
+    {
+        return $query->whereNotNull('banned_at');
+    }
+
+    /**
+     * Scope a query to only include unbanned users.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeUnbanned($query)
+    {
+        return $query->whereNull('banned_at');
+    }
+
     public function hasUnpaidBalance(): bool
     {
         return $this->balance > 0;
@@ -161,5 +183,10 @@ class User extends Authenticatable
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class, 'payer_id');
+    }
+
+    public function scopeBranchAdmin($query)
+    {
+        return $query->where('role', RoleEnum::Admin);
     }
 }

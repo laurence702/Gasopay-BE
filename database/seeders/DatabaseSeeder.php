@@ -18,11 +18,14 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-       // Create super admin with a unique phone number
+        // Create branches first
+        $branches = Branch::factory()->count(5)->create();
+
+        // Create super admin with a unique phone number
         $superAdminPhone = $this->generateUniquePhone();
         User::factory()->create([
             'fullname' => 'Super Admin',
-            'email' => 'test@example.com',
+            'email' => 'admin@example.com',
             'phone' => $superAdminPhone,
             'password' => Hash::make('password'),
             'role' => RoleEnum::SuperAdmin,
@@ -30,8 +33,8 @@ class DatabaseSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-       // Create branches and their admins
-        $branches = Branch::factory()->count(5)->create()->each(function ($branch) {
+        // Create branch admins
+        $branches->each(function ($branch) {
             $adminPhone = $this->generateUniquePhone();
             User::factory()->create([
                 'fullname' => $branch->name . ' Admin',
@@ -40,6 +43,7 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('password'),
                 'role' => RoleEnum::Admin,
                 'branch_id' => $branch->id,
+                'verification_status' => ProfileVerificationStatusEnum::VERIFIED,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -78,7 +82,7 @@ class DatabaseSeeder extends Seeder
                 'user_id' => $rider->id,
                 'vehicle_type' => Arr::random($vehicleTypes),
                 "guarantors_name" => 'guarantor'. $i,
-                "guarantors_phone" => $this->generateUniquePhone(), // Generate unique phone for guarantor
+                "guarantors_phone" => $this->generateUniquePhone(),
                 "guarantors_address" => 'guarantor address'. $i,
                 "address" => 'address'. $i,
                 "profile_pic_url" => '/path/to/image'. $i,

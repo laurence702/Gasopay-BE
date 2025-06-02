@@ -4,18 +4,24 @@ namespace Tests\Feature\Controllers\Api;
 
 use Tests\TestCase;
 use App\Models\User;
+use App\Models\Branch;
 use App\Models\UserProfile;
 use App\Enums\VehicleTypeEnum;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use App\Enums\RoleEnum;
+use Illuminate\Contracts\Auth\Authenticatable;
+use function Pest\Laravel\{getJson, postJson, putJson, deleteJson};
+use Laravel\Sanctum\Sanctum;
 
 class UserProfileControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $user;
-    private array $profileData;
+    protected User $user;
+    protected Branch $branch;
+    protected array $profileData;
 
     protected function setUp(): void
     {
@@ -23,30 +29,39 @@ class UserProfileControllerTest extends TestCase
 
         Storage::fake('public');
 
-        $this->user = User::factory()->create();
+        // Create branch first
+        $this->branch = Branch::factory()->create();
+        
+        // Create user with proper branch assignment
+        $this->user = User::factory()->rider()->create([
+            'branch_id' => $this->branch->id
+        ]);
         
         $this->profileData = [
             'user_id' => $this->user->id,
             'vehicle_type' => VehicleTypeEnum::Car->value,
             'phone' => '1234567890',
-            'address' => '123 Test Street',
-            'nin' => 'NIN123456',
-            'guarantors_name' => 'John Doe',
-            'guarantors_address' => '111 Guarantor Ln',
-            'guarantors_phone' => '5559876543',
-            'profile_pic_url' => UploadedFile::fake()->image('avatar.jpg'),
+            'address' => '123 Test St',
+            'nin' => '1234567890',
+            'guarantors_name' => 'Test Guarantor',
+            'guarantors_address' => '456 Guarantor Ave',
+            'guarantors_phone' => '5551234567',
+            'profilePicUrl' => 'http://example.com/pic.jpg',
         ];
     }
 
     public function test_can_list_user_profiles(): void
     {
+        /** @var Authenticatable $user */
+        $user = User::factory()->admin()->create(['branch_id' => $this->branch->id]);
+        $this->actingAs($user);
+
         $listData = $this->profileData;
-        unset($listData['profile_pic_url']);
-        $listData['profile_pic_url'] = 'http://example.com/photo.jpg';
+        unset($listData['profilePicUrl']);
+        $listData['profilePicUrl'] = 'http://example.com/photo.jpg';
         UserProfile::create($listData);
 
-        $response = $this->actingAs($this->user)
-            ->getJson('/api/user-profiles');
+        $response = $this->getJson('/api/user-profiles');
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -69,7 +84,7 @@ class UserProfileControllerTest extends TestCase
                         'guarantors_name',
                         'guarantors_address',
                         'guarantors_phone',
-                        'profile_pic_url',
+                        'profilePicUrl',
                         'created_at',
                         'updated_at',
                     ],
@@ -110,8 +125,11 @@ class UserProfileControllerTest extends TestCase
 
     public function test_can_create_user_profile(): void
     {
-        $response = $this->actingAs($this->user)
-            ->postJson('/api/user-profiles', $this->profileData);
+        /** @var Authenticatable $user */
+        $user = User::factory()->rider()->create(['branch_id' => $this->branch->id]);
+        $this->actingAs($user);
+
+        $response = $this->postJson('/api/user-profiles', $this->profileData);
 
         $response->assertCreated()
             ->assertJsonStructure([
@@ -133,26 +151,29 @@ class UserProfileControllerTest extends TestCase
                     'guarantors_name',
                     'guarantors_address',
                     'guarantors_phone',
-                    'profile_pic_url',
+                    'profilePicUrl',
                     'created_at',
                     'updated_at',
                 ],
             ]);
 
         $dbData = $this->profileData;
-        unset($dbData['profile_pic_url']);
+        unset($dbData['profilePicUrl']);
         $this->assertDatabaseHas('user_profiles', $dbData);
     }
 
     public function test_can_show_user_profile(): void
     {
+        /** @var Authenticatable $user */
+        $user = User::factory()->admin()->create(['branch_id' => $this->branch->id]);
+        $this->actingAs($user);
+
         $showData = $this->profileData;
-        unset($showData['profile_pic_url']);
-        $showData['profile_pic_url'] = 'http://example.com/photo.jpg';
+        unset($showData['profilePicUrl']);
+        $showData['profilePicUrl'] = 'http://example.com/photo.jpg';
         $profile = UserProfile::create($showData);
 
-        $response = $this->actingAs($this->user)
-            ->getJson("/api/user-profiles/{$profile->id}");
+        $response = $this->getJson("/api/user-profiles/{$profile->id}");
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -174,7 +195,7 @@ class UserProfileControllerTest extends TestCase
                     'guarantors_name',
                     'guarantors_address',
                     'guarantors_phone',
-                    'profile_pic_url',
+                    'profilePicUrl',
                     'created_at',
                     'updated_at',
                 ],
@@ -183,19 +204,22 @@ class UserProfileControllerTest extends TestCase
 
     public function test_can_update_user_profile(): void
     {
+        /** @var Authenticatable $user */
+        $user = User::factory()->rider()->create(['branch_id' => $this->branch->id]);
+        $this->actingAs($user);
+
         $initialData = $this->profileData;
-        unset($initialData['profile_pic_url']);
-        $initialData['profile_pic_url'] = 'http://example.com/photo.jpg';
+        unset($initialData['profilePicUrl']);
+        $initialData['profilePicUrl'] = 'http://example.com/photo.jpg';
         $profile = UserProfile::create($initialData);
 
         $updatedData = [
             'phone' => '0987654321',
             'address' => '456 Updated Street',
-            'profile_pic_url' => UploadedFile::fake()->image('new_avatar.png'),
+            'profilePicUrl' => UploadedFile::fake()->image('new_avatar.png'),
         ];
 
-        $response = $this->actingAs($this->user)
-            ->putJson("/api/user-profiles/{$profile->id}", $updatedData);
+        $response = $this->putJson("/api/user-profiles/{$profile->id}", $updatedData);
 
         $response->assertOk()
             ->assertJsonStructure([
@@ -217,7 +241,7 @@ class UserProfileControllerTest extends TestCase
                     'guarantors_name',
                     'guarantors_address',
                     'guarantors_phone',
-                    'profile_pic_url',
+                    'profilePicUrl',
                     'created_at',
                     'updated_at',
                 ],
@@ -233,10 +257,13 @@ class UserProfileControllerTest extends TestCase
 
     public function test_can_delete_user_profile(): void
     {
-        $profile = UserProfile::create($this->profileData);
+        /** @var Authenticatable $user */
+        $user = User::factory()->admin()->create(['branch_id' => $this->branch->id]);
+        $this->actingAs($user);
 
-        $response = $this->actingAs($this->user)
-            ->deleteJson("/api/user-profiles/{$profile->id}");
+        $profile = UserProfile::factory()->for($this->user)->create();
+
+        $response = $this->deleteJson("/api/user-profiles/{$profile->id}");
 
         $response->assertNoContent();
         $this->assertDatabaseMissing('user_profiles', ['id' => $profile->id]);

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Tests\TestCase;
 use App\Models\User;
+use App\Models\Branch;
 use App\Models\UserProfile;
 use App\Enums\RoleEnum;
 use App\Enums\ProfileVerificationStatusEnum; // Use the correct Enum
@@ -18,18 +19,23 @@ class UserVerificationTest extends TestCase
 
     private User $admin;
     private User $rider;
-    private User $nonRider;
+    private User $regular;
+    private Branch $branch;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->admin = User::factory()->create(['role' => RoleEnum::Admin]);
-        $this->rider = User::factory()->create(['role' => RoleEnum::Rider, 'verification_status' => ProfileVerificationStatusEnum::PENDING]);
-        $this->nonRider = User::factory()->create();
-        if ($this->nonRider->role === RoleEnum::Rider) {
-             $this->nonRider = User::factory()->create(['role' => RoleEnum::Admin]);
-        }
+        // Create branch first
+        $this->branch = Branch::factory()->create();
+
+        // Create users with proper roles and branch assignments
+        $this->admin = User::factory()->admin()->create(['branch_id' => $this->branch->id]);
+        $this->rider = User::factory()->rider()->create([
+            'branch_id' => $this->branch->id,
+            'verification_status' => ProfileVerificationStatusEnum::PENDING
+        ]);
+        $this->regular = User::factory()->admin()->create(['branch_id' => $this->branch->id]);
 
         // Create a profile for the rider
         UserProfile::factory()->create(['user_id' => $this->rider->id]);
@@ -95,7 +101,7 @@ class UserVerificationTest extends TestCase
     {
         Sanctum::actingAs($this->admin);
         $response = $this->putJson(route('users.update_verification_status'), [
-            'rider_id' => $this->nonRider->id,
+            'rider_id' => $this->regular->id,
             'status' => ProfileVerificationStatusEnum::VERIFIED->value,
         ]);
 

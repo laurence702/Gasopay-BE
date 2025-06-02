@@ -32,6 +32,7 @@ class AuthController extends Controller
                 'phone' => $validated['phone'],
                 'password' => Hash::make($validated['password']),
                 'role' => $validated['role'],
+                'branch_id' => $validated['branch_id'] ?? null,
             ]);
 
             // Create user profile for regular users and riders
@@ -40,7 +41,10 @@ class AuthController extends Controller
                     'address' => $validated['address'] ?? null,
                     'nin' => $validated['nin'] ?? null,
                     'guarantors_name' => $validated['guarantors_name'] ?? null,
+                    'guarantors_address' => $validated['guarantors_address'] ?? null,
+                    'guarantors_phone' => $validated['guarantors_phone'] ?? null,
                     'vehicle_type' => $validated['vehicle_type'] ?? null,
+                    'profile_pic_url' => $validated['profilePicUrl'] ?? null,
                 ]);
             }
 

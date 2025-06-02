@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('order_reference', 14)->unique()->nullable();
             $table->foreignUlid('payer_id')->constrained('users')->cascadeOnDelete()->comment('e.g rider, user');
             $table->ulid('created_by')->nullable()->after('payer_id');
-            $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
+            $table->string('branch_id', 2)->nullable();
             $table->enum('product', ['keke', 'car', 'cng', 'pms', 'lpg']);
             $table->decimal('amount_due', 10, 2);
             $table->enum('payment_type', ['full', 'part'])->default('full')->after('amount_due');
@@ -33,6 +33,11 @@ return new class extends Migration
 
             $table->index('payer_id');
             $table->index('order_reference');
+            
+            $table->foreign('branch_id')
+                  ->references('id')
+                  ->on('branches')
+                  ->cascadeOnDelete();
         });
     }
 

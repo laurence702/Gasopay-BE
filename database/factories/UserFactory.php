@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\RoleEnum;
+use App\Models\Branch;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -32,6 +33,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'branch_id' => Branch::factory()->create()->id, // Default to a branch for all roles except superadmin
         ];
     }
 
@@ -46,12 +48,24 @@ class UserFactory extends Factory
     }
 
     /**
+     * Set the user's role to super admin.
+     */
+    public function superAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => RoleEnum::SuperAdmin->value,
+            'branch_id' => null, // Only superadmin can have null branch_id
+        ]);
+    }
+
+    /**
      * Set the user's role to admin.
      */
     public function admin(): static
     {
         return $this->state(fn (array $attributes) => [
             'role' => RoleEnum::Admin->value,
+            'branch_id' => Branch::factory()->create()->id, // Admin must have a branch
         ]);
     }
 
@@ -62,6 +76,7 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => RoleEnum::Rider->value,
+            'branch_id' => Branch::factory()->create()->id, // Rider must have a branch
         ]);
     }
 }

@@ -26,9 +26,8 @@ class BranchController extends BaseController
 
     public function index()
     {
-        $this->authorize('viewAny', Branch::class);
+       // $this->authorize('viewAny', Branch::class);
         $branches = Branch::query()
-            ->with('branchAdmin')
             ->when(request()->search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%")
                     ->orWhere('location', 'like', "%{$search}%");

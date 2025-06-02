@@ -21,10 +21,17 @@ use App\Http\Requests\RegisterRiderRequest;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use App\Http\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\SuperAdminUpdateUserRequest;
+use App\Http\Requests\BranchAdminUpdateRiderRequest;
+use App\Http\Requests\BanUserRequest;
+use App\Policies\UserPolicy;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class UserController extends Controller
 {
-    use ApiResponseTrait;
+    use ApiResponseTrait, AuthorizesRequests;
 
     public function __construct()
     {
@@ -65,12 +72,12 @@ class UserController extends Controller
         );
     }
 
-    public function register_rider(RegisterRiderRequest $request): JsonResponse
+    public function register_rider(RegisterRiderRequest $request)
     {
         $validated = $request->validated();
         $validated['password'] = Hash::make($validated['password']);
-        $validated['role'] = RoleEnum::Rider;
         $validated['ip_address'] = $request->getClientIp();
+        $validated['role'] = RoleEnum::Rider;
         try {
             $user = DB::transaction(function () use ($validated, $request) {
                 $user = User::create($validated);
@@ -81,7 +88,7 @@ class UserController extends Controller
                     'nin' => $validated['nin'],
                     'guarantors_name' => $validated['guarantors_name'],
                     'guarantors_address' => $validated['guarantors_address'],
-                    'branch_id' => $request->user()->branch_id,
+                    'branch_id' => ($request->user()->role == RoleEnum::Admin) ? $request->user()->branch_id: $request->branch_id, //assign branch id to rider based on the role of the user
                     'guarantors_phone' => $validated['guarantors_phone'],
                     'vehicle_type' => $validated['vehicle_type'],
                     'profile_pic_url' => $validated['profilePicUrl'],
@@ -123,6 +130,7 @@ class UserController extends Controller
             $validated['password'] = Hash::make($validated['password']);
             $validated['role'] = RoleEnum::Admin;
             $validated['verrification_status'] = ProfileVerificationStatusEnum::VERIFIED;
+            $validated['verified_by'] = $request->user()->fullname;
             $user = User::create($validated);
             Cache::flush();
 
@@ -164,7 +172,17 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
-        $user->update($request->validated());
+        $validatedData = $request->validated();
+
+        // Check if password is provided in the request
+        if (isset($validatedData['password'])) {
+            // Hash the new password and update it in the validated data
+            $validatedData['password'] = Hash::make($validatedData['password']);
+            // Remove password_confirmation as it's only for validation
+            unset($validatedData['password_confirmation']);
+        }
+
+        $user->update($validatedData);
 
         Cache::flush();
 
@@ -177,34 +195,61 @@ class UserController extends Controller
     /**
      * Ban a specific user.
      *
-     * @param Request $request
-     * @param User $user The user to ban (via route model binding)
-     * @return JsonResponse
+     * @param  \App\Http\Requests\BanUserRequest  $request
+     * @param  \App\Models\User  $user The user to ban (via route model binding)
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function ban(Request $request, User $user): JsonResponse
+    public function ban(BanUserRequest $request, User $user): JsonResponse
     {
+        // Authorization and validation (including already banned and cannot ban Super Admin) are handled by BanUserRequest and UserPolicy.
+        
+        // Check if the authenticated user is trying to ban themselves (this check remains here)
         if ($request->user()->id === $user->id) {
             return $this->errorResponse('You cannot ban yourself.', 400);
         }
 
-        if ($user->role === RoleEnum::SuperAdmin) {
-            return $this->errorResponse('Cannot ban a Super Admin.', 403); 
-        }
-
-        // Check if already banned
-        if ($user->banned_at !== null) {
-            return $this->errorResponse('User is already banned.', 400);
-        }
+        // The BanUserRequest and UserPolicy ensure that:
+        // - Only Super Admins can ban users.
+        // - Super Admins cannot ban other Super Admins.
+        // - The user is not already banned.
 
         $user->banned_at = now();
+        $user->banned_reason = $request->ban_reason;
         $user->save();
 
         //Log out the user
-        $user->tokens()->delete(); 
+        $user->tokens()->delete();
 
         $this->flushUserCache($user->id);
 
         return $this->successResponse(new UserResource($user->refresh()), 'User banned successfully.');
+    }
+
+    /**
+     * Unban a specific user.
+     *
+     * @param  \App\Models\User  $user The user to unban (via route model binding)
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function unban(User $user): JsonResponse
+    {
+        // Only Super Admins can unban users
+        if (!Gate::allows('ban', $user)) {
+            return $this->errorResponse('You are not authorized to unban users.', 403);
+        }
+
+        // Check if the user is actually banned
+        if ($user->banned_at === null) {
+            return $this->errorResponse('User is not banned.', 400);
+        }
+
+        $user->banned_at = null;
+        $user->banned_reason = null;
+        $user->save();
+
+        $this->flushUserCache($user->id);
+
+        return $this->successResponse(new UserResource($user->refresh()), 'User unbanned successfully.');
     }
 
     public function destroy(User $user): JsonResponse
@@ -347,6 +392,77 @@ class UserController extends Controller
         } catch (\Throwable $e) {
             Log::error("Error fetching all unpaginated users: " . $e->getMessage());
             return $this->errorResponse('Failed to fetch users.', 500);
+        }
+    }
+
+    /**
+     * Update a user's information (Super Admin only).
+     *
+     * @param  \App\Http\Requests\SuperAdminUpdateUserRequest  $request
+     * @param  \App\Models\User  $user
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function superAdminUpdate(SuperAdminUpdateUserRequest $request, User $user): JsonResponse
+    {
+        $validatedData = $request->validated();
+
+        // Check if password is provided in the request
+        if (isset($validatedData['password'])) {
+            // Hash the new password and update it in the validated data
+            $validatedData['password'] = Hash::make($validatedData['password']);
+            // Remove password_confirmation as it's only for validation
+            unset($validatedData['password_confirmation']);
+        }
+
+        $user->update($validatedData);
+
+        Cache::flush();
+
+        return $this->successResponse(
+            new UserResource($user->load(['branch', 'userProfile'])),
+            'User updated successfully by Super Admin.'
+        );
+    }
+
+    /**
+     * Update a rider's information (Branch Admin only).
+     *
+     * @param  \App\Http\Requests\BranchAdminUpdateRiderRequest  $request
+     * @param  \App\Models\User  $user The rider user to update
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function branchAdminUpdateRider(BranchAdminUpdateRiderRequest $request, User $user): JsonResponse
+    {
+        $validatedData = $request->validated();
+
+        try {
+            DB::transaction(function () use ($validatedData, $user) {
+                // Update User model fields
+                $user->update(
+                    collect($validatedData)->only(['fullname', 'phone'])->toArray()
+                );
+
+                // Update UserProfile model fields
+                if ($user->userProfile) {
+                    $user->userProfile->update(
+                        collect($validatedData)->only(['address', 'nin', 'vehicle_type'])->toArray()
+                    );
+                } else {
+                    // This case should ideally not happen for a Rider, but handle defensively
+                    Log::warning('Branch Admin attempting to update Rider without UserProfile.', ['user_id' => $user->id]);
+                }
+            });
+
+            Cache::flush(); // Flush cache for updated user and potentially lists
+
+            return $this->successResponse(
+                new UserResource($user->load(['branch', 'userProfile'])),
+                'Rider updated successfully by Branch Admin.'
+            );
+
+        } catch (\Throwable $e) {
+            Log::error('Branch Admin Rider update failed:', ['user_id' => $user->id, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return $this->errorResponse('Failed to update rider information.', 500);
         }
     }
 }

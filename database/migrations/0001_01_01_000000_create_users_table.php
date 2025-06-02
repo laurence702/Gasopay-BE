@@ -9,14 +9,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Create branches table WITHOUT branch_admin foreign key constraint
         Schema::create('branches', function (Blueprint $table) {
-            $table->id();
+            $table->ulid('id')->primary();
             $table->string('name')->nullable();
             $table->string('location');
-            $table->ulid('branch_admin')->nullable();
             $table->string('branch_phone')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
 
         // Create users table WITHOUT branch_id foreign key constraint
@@ -26,7 +25,7 @@ return new class extends Migration
             $table->string('phone')->unique();
             $table->string('email')->unique()->nullable();
             $table->enum('role', ['admin', 'rider', 'regular', 'super_admin']);
-            $table->unsignedBigInteger('branch_id')->nullable();
+            $table->ulid('branch_id')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->uuid('profile_id')->nullable()->comment('for rider and non-admin users only');
@@ -37,6 +36,7 @@ return new class extends Migration
             $table->ipAddress('ip_address')->nullable();
             $table->rememberToken();
             $table->timestamp('banned_at')->nullable();
+            $table->string('banned_reason')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -47,13 +47,6 @@ return new class extends Migration
                   ->references('id')
                   ->on('branches')
                   ->nullOnDelete();
-        });
-
-        Schema::table('branches', function (Blueprint $table) {
-            $table->foreign('branch_admin')
-                  ->references('id')
-                  ->on('users')
-                  ->cascadeOnDelete();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
