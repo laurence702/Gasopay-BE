@@ -34,11 +34,11 @@ class UserProfileController extends Controller
         $validatedData = $request->validated();
         $validatedData['user_id'] = \Illuminate\Support\Facades\Auth::id();
         
-        if ($request->hasFile('profile_pic_url') && $request->file('profile_pic_url')->isValid()) {
+        if ($request->hasFile('profilePicUrl') && $request->file('profilePicUrl')->isValid()) {
             // Store the relative path returned by store()
-            $validatedData['profile_pic_url'] = $request->file('profile_pic_url')->store('profile-pics', 'public');
+            $validatedData['profile_pic_url'] = $request->file('profilePicUrl')->store('profile-pics', 'public');
         } else {
-             unset($validatedData['profile_pic_url']); 
+             unset($validatedData['profilePicUrl']); 
         }
         
         $userProfile = UserProfile::create($validatedData);
@@ -61,15 +61,15 @@ class UserProfileController extends Controller
     {
         $validatedData = $request->validated();
 
-        if ($request->hasFile('profile_pic_url') && $request->file('profile_pic_url')->isValid()) {
+        if ($request->hasFile('profilePicUrl') && $request->file('profilePicUrl')->isValid()) {
             // Delete the old file (using the stored path)
             if ($userProfile->profile_pic_url && Storage::disk('public')->exists($userProfile->profile_pic_url)) {
                  Storage::disk('public')->delete($userProfile->profile_pic_url);
             }
             // Store the new relative path
-            $validatedData['profile_pic_url'] = $request->file('profile_pic_url')->store('profile-pics', 'public');
+            $validatedData['profile_pic_url'] = $request->file('profilePicUrl')->store('profile-pics', 'public');
         } else {
-             unset($validatedData['profile_pic_url']); 
+             unset($validatedData['profilePicUrl']); 
         }
 
         $userProfile->update($validatedData);

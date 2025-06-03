@@ -36,7 +36,7 @@ return new class extends Migration
             $table->ipAddress('ip_address')->nullable();
             $table->rememberToken();
             $table->timestamp('banned_at')->nullable();
-            $table->string('banned_reason')->nullable();
+            $table->string('ban_reason')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

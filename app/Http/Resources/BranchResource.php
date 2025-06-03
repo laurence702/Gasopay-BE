@@ -20,7 +20,6 @@ class BranchResource extends JsonResource
             'name' => $this->name,
             'location' => $this->location,
             'branch_phone' => $this->branch_phone,
-            'branch_admin' => new UserResource($this->whenLoaded('branchAdmin')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

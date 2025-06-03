@@ -26,7 +26,7 @@ class BanUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ban_reason' => ['required', 'string', 'max:255'],
+            'ban_reason' => ['string', 'max:255'],
         ];
     }
 }

@@ -31,10 +31,11 @@ class UserResource extends JsonResource
                 return $this->orders_sum_amount_due;
             }),
             'banned_at' => $this->banned_at,
-            'banned_reason' => $this?->banned_reason,
+            'ban_reason' => $this?->ban_reason,
             'ip_address' => $this?->ip_address,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'deleted_at' => $this->deleted_at,
         ];
     }
 }

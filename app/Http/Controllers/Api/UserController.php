@@ -23,11 +23,9 @@ use App\Http\Traits\ApiResponseTrait;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\SuperAdminUpdateUserRequest;
 use App\Http\Requests\BranchAdminUpdateRiderRequest;
-use App\Http\Requests\BanUserRequest;
-use App\Policies\UserPolicy;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Response;
 
 class UserController extends Controller
 {
@@ -59,7 +57,7 @@ class UserController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
-            'role' => $request->role,
+            'role' => RoleEnum::Regular,
             'branch_id' => $request->branch_id,
         ]);
 
@@ -68,7 +66,7 @@ class UserController extends Controller
         return $this->successResponse(
             new UserResource($user->load(['branch', 'userProfile'])),
             'User created successfully.',
-            201
+            Response::HTTP_CREATED
         );
     }
 
@@ -78,6 +76,7 @@ class UserController extends Controller
         $validated['password'] = Hash::make($validated['password']);
         $validated['ip_address'] = $request->getClientIp();
         $validated['role'] = RoleEnum::Rider;
+        $validated['branch_id'] = ($request->user()->role == RoleEnum::Admin) ? $request->user()->branch_id : $request->branch_id;
         try {
             $user = DB::transaction(function () use ($validated, $request) {
                 $user = User::create($validated);
@@ -88,7 +87,7 @@ class UserController extends Controller
                     'nin' => $validated['nin'],
                     'guarantors_name' => $validated['guarantors_name'],
                     'guarantors_address' => $validated['guarantors_address'],
-                    'branch_id' => ($request->user()->role == RoleEnum::Admin) ? $request->user()->branch_id: $request->branch_id, //assign branch id to rider based on the role of the user
+                    'branch_id' => $validated['branch_id'],
                     'guarantors_phone' => $validated['guarantors_phone'],
                     'vehicle_type' => $validated['vehicle_type'],
                     'profile_pic_url' => $validated['profilePicUrl'],
@@ -114,12 +113,12 @@ class UserController extends Controller
             return $this->successResponse(
                 new UserResource($user->load(['branch', 'userProfile'])),
                 'Rider registered successfully.',
-                201
+                Response::HTTP_CREATED
             );
 
         } catch (\Throwable $e) {
             Log::error('Rider registration failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return $this->errorResponse('Rider registration failed due to an internal error.', 500);
+            return $this->errorResponse('Rider registration failed due to an internal error.', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -137,11 +136,11 @@ class UserController extends Controller
             return $this->successResponse(
                 new UserResource($user),
                 'Admin created successfully.',
-                201
+                Response::HTTP_CREATED
             );
         } catch (\Exception $e) {
             Log::error('Admin creation failed:', ['error' => $e->getMessage()]);
-            return $this->errorResponse('Admin creation failed.', 500);
+            return $this->errorResponse('Admin creation failed.', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -199,30 +198,40 @@ class UserController extends Controller
      * @param  \App\Models\User  $user The user to ban (via route model binding)
      * @return \Illuminate\Http\JsonResponse
      */
-    public function ban(BanUserRequest $request, User $user): JsonResponse
+    public function ban(Request $request, User $user): JsonResponse
     {
-        // Authorization and validation (including already banned and cannot ban Super Admin) are handled by BanUserRequest and UserPolicy.
-        
-        // Check if the authenticated user is trying to ban themselves (this check remains here)
-        if ($request->user()->id === $user->id) {
-            return $this->errorResponse('You cannot ban yourself.', 400);
+        try {
+            Log::info('Request payload for ban:', ['request' => $request->all()]);
+            // Only Admins and SuperAdmins can ban users
+            if (!in_array($request->user()->role, [RoleEnum::Admin->value, RoleEnum::SuperAdmin->value])) {
+                return $this->errorResponse('You are not authorized to ban users.', Response::HTTP_FORBIDDEN);
+            }
+            // Cannot ban SuperAdmin
+            if ($user->role === RoleEnum::SuperAdmin->value) {
+                return $this->errorResponse('Cannot ban a Super Admin.', Response::HTTP_FORBIDDEN);
+            }
+            // Cannot ban self
+            if ($request->user()->id === $user->id) {
+                return $this->errorResponse('You cannot ban yourself.', Response::HTTP_FORBIDDEN);
+            }
+            // Cannot ban already banned user
+            if ($user->banned_at) {
+                return $this->errorResponse('User is already banned.', Response::HTTP_FORBIDDEN);
+            }
+            $request->validate([
+                'ban_reason' => 'nullable|string|max:255',
+            ]);
+            $user->banned_at = now();
+            $user->ban_reason = $request->input('ban_reason');
+            $user->save();
+            $this->flushUserCache($user->id);
+            return $this->successResponse(new UserResource($user->refresh()), 'User banned successfully.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error banning user: ' . $e->getMessage());
+            return $this->errorResponse('Failed to ban user.', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        // The BanUserRequest and UserPolicy ensure that:
-        // - Only Super Admins can ban users.
-        // - Super Admins cannot ban other Super Admins.
-        // - The user is not already banned.
-
-        $user->banned_at = now();
-        $user->banned_reason = $request->ban_reason;
-        $user->save();
-
-        //Log out the user
-        $user->tokens()->delete();
-
-        $this->flushUserCache($user->id);
-
-        return $this->successResponse(new UserResource($user->refresh()), 'User banned successfully.');
     }
 
     /**
@@ -235,16 +244,16 @@ class UserController extends Controller
     {
         // Only Super Admins can unban users
         if (!Gate::allows('ban', $user)) {
-            return $this->errorResponse('You are not authorized to unban users.', 403);
+            return $this->errorResponse('You are not authorized to unban users.', Response::HTTP_FORBIDDEN);
         }
 
         // Check if the user is actually banned
         if ($user->banned_at === null) {
-            return $this->errorResponse('User is not banned.', 400);
+            return $this->errorResponse('User is not banned.', Response::HTTP_BAD_REQUEST);
         }
 
         $user->banned_at = null;
-        $user->banned_reason = null;
+        $user->ban_reason = null;
         $user->save();
 
         $this->flushUserCache($user->id);
@@ -255,40 +264,37 @@ class UserController extends Controller
     public function destroy(User $user): JsonResponse
     {
         if ($user->trashed()) {
-            return $this->errorResponse('User already deleted.', 404);
+            return $this->errorResponse('User already deleted.', Response::HTTP_NOT_FOUND);
         }
 
         $user->delete();
         Cache::flush();
 
-        return $this->successResponse(null, 'User deleted successfully', 200);
+        return $this->successResponse(null, 'User deleted successfully', Response::HTTP_OK);
     }
 
-    public function restore($id): JsonResponse
+    public function restore(User $user): JsonResponse
     {
-        $user = User::withTrashed()->findOrFail($id);
-
         if (!$user->trashed()) {
-            return $this->errorResponse('User is not deleted.', 400);
+            return $this->errorResponse('User is not deleted.', Response::HTTP_BAD_REQUEST);
         }
 
         $user->restore();
         Cache::flush();
-
-        return $this->successResponse(null, 'User restored successfully');
+        return $this->successResponse(
+            new UserResource($user->load(['branch', 'userProfile'])),
+            'User restored successfully'
+        );
     }
 
-    public function forceDelete($id): JsonResponse
+    public function forceDelete(User $user): JsonResponse
     {
-        $user = User::withTrashed()->findOrFail($id);
-
         if (!$user->trashed()) {
-            return $this->errorResponse('User must be soft-deleted first.', 400);
+            return $this->errorResponse('User must be soft deleted before permanent deletion.', Response::HTTP_BAD_REQUEST);
         }
 
         $user->forceDelete();
         Cache::flush();
-
         return $this->successResponse(null, 'User permanently deleted');
     }
 
@@ -296,76 +302,53 @@ class UserController extends Controller
      * Update the verification status of a Rider.
      *
      * @param Request $request
-     * @param User $user
      * @return JsonResponse
      */
-    public function updateVerificationStatus(Request $request, User $user): JsonResponse
+    public function updateVerificationStatus(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'status' => ['required', new EnumRule(ProfileVerificationStatusEnum::class)],
-            'rider_id' => ['required', 'exists:users,id']
-        ]);
-        $user = User::find($validated['rider_id']);
-        if ($user->role !== RoleEnum::Rider) {
-            return $this->errorResponse('User is not a rider.', 400);
-        }
-
-        $newStatus = ProfileVerificationStatusEnum::from($validated['status']);
-
-        if ($newStatus === ProfileVerificationStatusEnum::VERIFIED && $user->userProfile === null) {
-            return $this->errorResponse('Cannot verify rider without a profile.', 400);
-        }
-
         try {
-            if($newStatus === ProfileVerificationStatusEnum::REJECTED){
-                $user->verification_status = $newStatus;
-                $user->save();
-                //send sms to the rider
-                try {
-                    $smsService = app()->make(\App\Services\AfricasTalkingService::class);
-                    $smsService->send(
-                        $user->phone, 
-                        "Your profile has been rejected. Please update your profile and try again."
-                    );
-                } catch (\Exception $e) {
-                    Log::warning('Failed to send rejection SMS: ' . $e->getMessage());
-                    // Continue execution even if SMS fails
-                }
-            }else{
-                $user->verification_status = $newStatus;
-                $user->verified_by = $request->user()->fullname;
-                $user->email_verified_at = now();
-                $user->save();
-                //send sms to the rider
-                try {
-                    $smsService = app()->make(\App\Services\AfricasTalkingService::class);
-                    $smsService->send(
-                        $user->phone, 
-                        "Your profile has been verified. You can now login to the app."
-                    );
-                } catch (\Exception $e) {
-                    Log::warning('Failed to send verification SMS: ' . $e->getMessage());
-                    // Continue execution even if SMS fails
-                }
+            Log::info('Request payload for updateVerificationStatus:', ['request' => $request->all()]);
+            $validated = $request->validate([
+                'rider_id' => 'required|exists:users,id',
+                'status' => ['required', new EnumRule(ProfileVerificationStatusEnum::class)],
+            ]);
+
+            $rider = User::findOrFail($validated['rider_id']);
+
+            // Check if the user is a rider first
+            if ($rider->role !== RoleEnum::Rider->value) {
+                return $this->errorResponse('User is not a rider.', Response::HTTP_BAD_REQUEST);
+            }
+            // Then check if the rider has a profile
+            if (!$rider->userProfile) {
+                return $this->errorResponse('Cannot verify rider without a profile.', Response::HTTP_BAD_REQUEST);
             }
 
-            $this->flushUserCache($user->id);
-
-            // Only flush tags if the cache driver supports it
-            if (method_exists(Cache::getStore(), 'tags')) {
-                Cache::tags(['users_list'])->flush();
+            // Check if the authenticated user has the required role
+            if (!in_array($request->user()->role, [RoleEnum::Admin->value, RoleEnum::SuperAdmin->value])) {
+                return $this->errorResponse('You are not authorized to update rider verification status.', Response::HTTP_FORBIDDEN);
             }
 
-            $user->refresh()->load('branch', 'userProfile');
+            $rider->verification_status = $validated['status'];
+            $rider->verified_by = $request->user()->fullname;
+            $rider->save();
 
-            return $this->successResponse(
-                new UserResource($user),
-                'Rider status updated to ' . $newStatus->value . '.',
-                200
+            Cache::flush();
+
+            $response = $this->successResponse(
+                new UserResource($rider->load(['branch', 'userProfile'])),
+                'Rider verification status updated successfully.'
             );
-        } catch (Exception $e) {
-            Log::error("Error updating verification status for rider {$user->id}: " . $e->getMessage());
-            return $this->errorResponse('Failed to update rider verification status.', 500);
+
+            Log::info('Response from updateVerificationStatus:', ['response' => $response->getContent()]);
+
+            return $response;
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Return default Laravel validation error response
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating rider verification status: ' . $e->getMessage());
+            return $this->errorResponse('Failed to update rider verification status.', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -391,7 +374,7 @@ class UserController extends Controller
             return $this->successResponse(UserResource::collection($users), 'All users retrieved successfully.');
         } catch (\Throwable $e) {
             Log::error("Error fetching all unpaginated users: " . $e->getMessage());
-            return $this->errorResponse('Failed to fetch users.', 500);
+            return $this->errorResponse('Failed to fetch users.', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -462,7 +445,7 @@ class UserController extends Controller
 
         } catch (\Throwable $e) {
             Log::error('Branch Admin Rider update failed:', ['user_id' => $user->id, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return $this->errorResponse('Failed to update rider information.', 500);
+            return $this->errorResponse('Failed to update rider information.', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 }

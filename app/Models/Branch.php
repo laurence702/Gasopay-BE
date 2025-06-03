@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Enums\RoleEnum;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Branch extends Model
 {
-    use HasFactory, HasUuids, SoftDeletes;
+    use HasFactory, HasUlids, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -28,20 +29,16 @@ class Branch extends Model
     protected static function boot()
     {
         parent::boot();
-
-        static::creating(function ($branch) {
-            // Get the next available ID
-            $lastBranch = static::orderBy('id', 'desc')->first();
-            $nextId = $lastBranch ? $lastBranch->id + 1 : 1;
-            
-            // Format as two digits
-            $branch->id = str_pad($nextId, 2, '0', STR_PAD_LEFT);
-        });
     }
 
-    public function users(): HasMany
+    public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    public function admin()
+    {
+        return $this->hasOne(User::class)->where('role', RoleEnum::Admin);
     }
 
     public function orders(): HasMany

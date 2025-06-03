@@ -46,7 +46,7 @@ class UserProfileControllerTest extends TestCase
             'guarantors_name' => 'Test Guarantor',
             'guarantors_address' => '456 Guarantor Ave',
             'guarantors_phone' => '5551234567',
-            'profilePicUrl' => 'http://example.com/pic.jpg',
+            'profilePicUrl' => UploadedFile::fake()->image('avatar.jpg'),
         ];
     }
 
@@ -58,7 +58,7 @@ class UserProfileControllerTest extends TestCase
 
         $listData = $this->profileData;
         unset($listData['profilePicUrl']);
-        $listData['profilePicUrl'] = 'http://example.com/photo.jpg';
+        $listData['profile_pic_url'] = 'profile-pics/avatar.jpg';
         UserProfile::create($listData);
 
         $response = $this->getJson('/api/user-profiles');
@@ -129,7 +129,10 @@ class UserProfileControllerTest extends TestCase
         $user = User::factory()->rider()->create(['branch_id' => $this->branch->id]);
         $this->actingAs($user);
 
-        $response = $this->postJson('/api/user-profiles', $this->profileData);
+        $profileData = $this->profileData;
+        $profileData['user_id'] = $user->id;
+
+        $response = $this->postJson('/api/user-profiles', $profileData);
 
         $response->assertCreated()
             ->assertJsonStructure([
@@ -157,7 +160,7 @@ class UserProfileControllerTest extends TestCase
                 ],
             ]);
 
-        $dbData = $this->profileData;
+        $dbData = $profileData;
         unset($dbData['profilePicUrl']);
         $this->assertDatabaseHas('user_profiles', $dbData);
     }
@@ -170,7 +173,7 @@ class UserProfileControllerTest extends TestCase
 
         $showData = $this->profileData;
         unset($showData['profilePicUrl']);
-        $showData['profilePicUrl'] = 'http://example.com/photo.jpg';
+        $showData['profile_pic_url'] = 'profile-pics/avatar.jpg';
         $profile = UserProfile::create($showData);
 
         $response = $this->getJson("/api/user-profiles/{$profile->id}");
@@ -209,8 +212,9 @@ class UserProfileControllerTest extends TestCase
         $this->actingAs($user);
 
         $initialData = $this->profileData;
+        $initialData['user_id'] = $user->id;
         unset($initialData['profilePicUrl']);
-        $initialData['profilePicUrl'] = 'http://example.com/photo.jpg';
+        $initialData['profile_pic_url'] = 'profile-pics/avatar.jpg';
         $profile = UserProfile::create($initialData);
 
         $updatedData = [

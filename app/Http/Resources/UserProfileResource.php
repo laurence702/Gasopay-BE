@@ -27,7 +27,7 @@ class UserProfileResource extends JsonResource
             'guarantors_name' => $this->guarantors_name,
             'guarantors_address' => $this->guarantors_address,
             'guarantors_phone' => $this->guarantors_phone,
-            'profile_pic_url' => $this->profile_pic_url,
+            'profilePicUrl' => $this->profile_pic_url,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

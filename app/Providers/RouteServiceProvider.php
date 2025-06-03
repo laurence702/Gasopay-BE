@@ -24,8 +24,22 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        parent::boot();
+
         Route::bind('user', function ($value) {
-            return \App\Models\User::where('id', $value)->firstOrFail();
+            return \App\Models\User::withTrashed()->findOrFail($value);
+        });
+
+        Route::bind('branch', function ($value) {
+            return \App\Models\Branch::withTrashed()->findOrFail($value);
+        });
+
+        Route::bind('payment_history', function ($value) {
+            return \App\Models\PaymentHistory::withTrashed()->findOrFail($value);
+        });
+
+        Route::bind('order', function ($value) {
+            return \App\Models\Order::withTrashed()->findOrFail($value);
         });
 
         RateLimiter::for('api', function (Request $request) {

@@ -19,6 +19,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use App\Enums\ProfileVerificationStatusEnum;
 use App\Enums\PaymentMethodEnum;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Response;
 
 class UserControllerTest extends TestCase
 {
@@ -62,7 +64,7 @@ class UserControllerTest extends TestCase
 
         $response = $this->getJson('/api/users');
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
@@ -113,7 +115,7 @@ class UserControllerTest extends TestCase
 
         $response = $this->getJson('/api/users');
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
@@ -195,7 +197,7 @@ class UserControllerTest extends TestCase
 
         $response = $this->getJson("/api/users/{$targetUser->id}");
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure([
                 'data' => [
                     'id',
@@ -228,7 +230,7 @@ class UserControllerTest extends TestCase
 
         $response = $this->putJson("/api/users/{$targetUser->id}", $updateData);
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure([
                 'data' => [
                     'id',
@@ -262,7 +264,7 @@ class UserControllerTest extends TestCase
 
         $response = $this->deleteJson("/api/users/{$targetUser->id}");
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJson([
                 'message' => 'User deleted successfully'
             ]);
@@ -283,7 +285,7 @@ class UserControllerTest extends TestCase
 
         $response = $this->postJson("/api/users/{$trashedUser->id}/restore"); 
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJson([
                 'message' => 'User restored successfully'
             ]);
@@ -305,7 +307,7 @@ class UserControllerTest extends TestCase
 
         $response = $this->deleteJson("/api/users/{$trashedUser->id}/force"); 
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJson([
                 'message' => 'User permanently deleted'
             ]);
@@ -318,20 +320,20 @@ class UserControllerTest extends TestCase
     public function test_unauthenticated_user_cannot_access_user_endpoints()
     {
         $response = $this->getJson('/api/users');
-        $response->assertUnauthorized();
+        $response->assertStatus(Response::HTTP_UNAUTHORIZED);
 
         // POST to /api/users is not allowed (405) as we use specific endpoints for user creation
         $response = $this->postJson('/api/users', []);
-        $response->assertStatus(405);
+        $response->assertStatus(Response::HTTP_METHOD_NOT_ALLOWED);
 
         $response = $this->getJson('/api/users/1');
-        $response->assertUnauthorized();
+        $response->assertStatus(Response::HTTP_UNAUTHORIZED);
 
         $response = $this->putJson('/api/users/1', []);
-        $response->assertUnauthorized();
+        $response->assertStatus(Response::HTTP_UNAUTHORIZED);
 
         $response = $this->deleteJson('/api/users/1');
-        $response->assertUnauthorized();
+        $response->assertStatus(Response::HTTP_UNAUTHORIZED);
     }
 
     public function test_users_can_be_searched()
@@ -348,7 +350,7 @@ class UserControllerTest extends TestCase
 
         $response = $this->getJson('/api/users?search=John');
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
@@ -389,7 +391,7 @@ class UserControllerTest extends TestCase
             'status' => ProfileVerificationStatusEnum::VERIFIED->value,
         ]);
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure(['status', 'message', 'data' => ['id', 'verification_status']])
             ->assertJsonPath('data.verification_status', ProfileVerificationStatusEnum::VERIFIED->value);
 
@@ -411,7 +413,7 @@ class UserControllerTest extends TestCase
             'status' => ProfileVerificationStatusEnum::REJECTED->value,
         ]);
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonPath('data.verification_status', ProfileVerificationStatusEnum::REJECTED->value);
 
         $this->assertDatabaseHas('users', [
@@ -432,7 +434,7 @@ class UserControllerTest extends TestCase
             'status' => ProfileVerificationStatusEnum::VERIFIED->value,
         ]);
 
-        $response->assertForbidden(); // Expect 403 due to CheckAdminOrSuperAdmin middleware
+        $response->assertStatus(Response::HTTP_FORBIDDEN); // Expect 403 due to CheckAdminOrSuperAdmin middleware
     }
 
     public function test_cannot_update_status_for_non_rider()
@@ -447,7 +449,7 @@ class UserControllerTest extends TestCase
             'status' => ProfileVerificationStatusEnum::VERIFIED->value,
         ]);
 
-        $response->assertStatus(400) // Bad request
+        $response->assertStatus(Response::HTTP_BAD_REQUEST) // Bad request
             ->assertJsonPath('message', 'User is not a rider.');
     }
 
@@ -464,7 +466,7 @@ class UserControllerTest extends TestCase
             'status' => ProfileVerificationStatusEnum::VERIFIED->value,
         ]);
 
-        $response->assertStatus(400) // Bad request
+        $response->assertStatus(Response::HTTP_BAD_REQUEST) // Bad request
              ->assertJsonPath('message', 'Cannot verify rider without a profile.');
     }
 
@@ -479,20 +481,20 @@ class UserControllerTest extends TestCase
         $response = $this->putJson(route('users.update_verification_status'), [
             'rider_id' => $rider->id, 
         ]);
-        $response->assertStatus(422)->assertJsonValidationErrors('status');
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)->assertJsonValidationErrors('status');
 
         // Invalid status
         $response = $this->putJson(route('users.update_verification_status'), [
             'rider_id' => $rider->id, 
             'status' => 'invalid_status'
         ]);
-        $response->assertStatus(422)->assertJsonValidationErrors('status');
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)->assertJsonValidationErrors('status');
 
         // Missing rider_id
         $response = $this->putJson(route('users.update_verification_status'), [
             'status' => ProfileVerificationStatusEnum::VERIFIED->value,
         ]);
-        $response->assertStatus(422)->assertJsonValidationErrors('rider_id');
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)->assertJsonValidationErrors('rider_id');
     }
 
     // ======================================
@@ -501,64 +503,76 @@ class UserControllerTest extends TestCase
 
     public function test_super_admin_can_ban_user()
     {
-        $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
-        $userToBan = User::factory()->create(['role' => RoleEnum::Regular]);
+        $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin->value]);
+        $userToBan = User::factory()->create();
         Sanctum::actingAs($superAdmin);
 
-        $response = $this->postJson(route('users.ban', ['user' => $userToBan->id]));
+        $response = $this->postJson(route('users.ban', ['user' => $userToBan->id]), [
+            'ban_reason' => 'Optional reason for ban'
+        ]);
 
-        $response->assertOk()
-                 ->assertJsonPath('message', 'User banned successfully.')
-                 ->assertJsonPath('data.id', $userToBan->id)
-                 ->assertJsonPath('data.banned_at', fn ($bannedAt) => $bannedAt !== null);
+        Log::info('Request payload for ban in test:', ['test' => __FUNCTION__, 'request' => $response->json()]);
 
-        $this->assertNotNull($userToBan->fresh()->banned_at);
+        $response->assertStatus(Response::HTTP_OK)
+            ->assertJsonPath('message', 'User banned successfully.')
+            ->assertJsonPath('data.id', $userToBan->id)
+            ->assertJsonPath('data.banned_at', fn ($bannedAt) => $bannedAt !== null);
     }
 
     public function test_admin_can_ban_user()
     {
-        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
-        $userToBan = User::factory()->create(['role' => RoleEnum::Rider]);
+        $admin = User::factory()->create(['role' => RoleEnum::Admin->value]);
+        $userToBan = User::factory()->create();
         Sanctum::actingAs($admin);
 
-        $response = $this->postJson(route('users.ban', ['user' => $userToBan->id]));
+        $response = $this->postJson(route('users.ban', ['user' => $userToBan->id]), [
+            'ban_reason' => 'Optional reason for ban'
+        ]);
 
-        $response->assertOk();
+        Log::info('Request payload for ban in test:', ['test' => __FUNCTION__, 'request' => $response->json()]);
+
+        $response->assertStatus(Response::HTTP_OK);
         $this->assertNotNull($userToBan->fresh()->banned_at);
     }
 
     public function test_cannot_ban_super_admin()
     {
-        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
-        $superAdminToBan = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
+        $admin = User::factory()->create(['role' => RoleEnum::Admin->value]);
+        $superAdminToBan = User::factory()->create(['role' => RoleEnum::SuperAdmin->value]);
         Sanctum::actingAs($admin);
 
-        $response = $this->postJson(route('users.ban', ['user' => $superAdminToBan->id]));
+        $response = $this->postJson(route('users.ban', ['user' => $superAdminToBan->id]), [
+            'ban_reason' => 'Optional reason for ban'
+        ]);
 
-        $response->assertForbidden(); // 403
+        $response->assertStatus(Response::HTTP_FORBIDDEN); // 403
         $this->assertNull($superAdminToBan->fresh()->banned_at);
     }
 
     public function test_cannot_ban_self()
     {
-        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
+        $admin = User::factory()->create(['role' => RoleEnum::Admin->value]);
         Sanctum::actingAs($admin);
 
-        $response = $this->postJson(route('users.ban', ['user' => $admin->id]));
+        $response = $this->postJson(route('users.ban', ['user' => $admin->id]), [
+            'ban_reason' => 'Optional reason for ban'
+        ]);
 
-        $response->assertForbidden(); // 403
+        $response->assertStatus(Response::HTTP_FORBIDDEN); // 403
         $this->assertNull($admin->fresh()->banned_at);
     }
 
     public function test_regular_user_cannot_ban_user()
     {
-        $regularUser = User::factory()->create(['role' => RoleEnum::Regular]);
-        $userToBan = User::factory()->create(['role' => RoleEnum::Rider]);
+        $regularUser = User::factory()->create(['role' => RoleEnum::Regular->value]);
+        $userToBan = User::factory()->create();
         Sanctum::actingAs($regularUser);
 
-        $response = $this->postJson(route('users.ban', ['user' => $userToBan->id]));
+        $response = $this->postJson(route('users.ban', ['user' => $userToBan->id]), [
+            'ban_reason' => 'Optional reason for ban'
+        ]);
 
-        $response->assertForbidden(); // 403
+        $response->assertStatus(Response::HTTP_FORBIDDEN); // 403
         $this->assertNull($userToBan->fresh()->banned_at);
     }
 
@@ -570,7 +584,7 @@ class UserControllerTest extends TestCase
 
         $response = $this->postJson(route('users.ban', ['user' => $userToBan->id]));
 
-        $response->assertForbidden(); // 403
+        $response->assertStatus(Response::HTTP_FORBIDDEN); // 403
     }
 
     public function test_banned_user_cannot_login()
@@ -587,7 +601,96 @@ class UserControllerTest extends TestCase
             'password' => 'password123',
         ]);
 
-        $response->assertForbidden() // 403 as implemented in AuthController
+        $response->assertStatus(Response::HTTP_FORBIDDEN) // 403 as implemented in AuthController
             ->assertJsonPath('message', 'Your account has been suspended.');
+    }
+
+    public function test_can_access_soft_deleted_user()
+    {
+        /** @var Authenticatable $admin */
+        $admin = User::factory()->admin()->create(['branch_id' => $this->branch->id]);
+        $this->actingAs($admin);
+
+        $targetUser = User::factory()->create(['branch_id' => $this->branch->id]);
+        $targetUser->delete(); // Soft delete the user
+
+        $response = $this->getJson("/api/users/{$targetUser->id}");
+
+        $response->assertStatus(Response::HTTP_OK)
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'fullname',
+                    'email',
+                    'phone',
+                    'role',
+                    'branch_id',
+                    'branch',
+                    'user_profile',
+                    'created_at',
+                    'updated_at',
+                    'deleted_at'
+                ]
+            ])
+            ->assertJsonFragment([
+                'id' => $targetUser->id,
+                'deleted_at' => $targetUser->deleted_at->toJSON()
+            ]);
+    }
+
+    public function test_can_restore_soft_deleted_user()
+    {
+        /** @var Authenticatable $admin */
+        $admin = User::factory()->admin()->create(['branch_id' => $this->branch->id]);
+        $this->actingAs($admin);
+
+        $targetUser = User::factory()->create(['branch_id' => $this->branch->id]);
+        $targetUser->delete(); // Soft delete the user
+
+        $response = $this->postJson("/api/users/{$targetUser->id}/restore");
+
+        $response->assertStatus(Response::HTTP_OK)
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'fullname',
+                    'email',
+                    'phone',
+                    'role',
+                    'branch_id',
+                    'branch',
+                    'user_profile',
+                    'created_at',
+                    'updated_at',
+                    'deleted_at'
+                ]
+            ])
+            ->assertJsonFragment([
+                'id' => $targetUser->id,
+                'deleted_at' => null
+            ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $targetUser->id,
+            'deleted_at' => null
+        ]);
+    }
+
+    public function test_can_force_delete_soft_deleted_user()
+    {
+        /** @var Authenticatable $admin */
+        $admin = User::factory()->admin()->create(['branch_id' => $this->branch->id]);
+        $this->actingAs($admin);
+
+        $targetUser = User::factory()->create(['branch_id' => $this->branch->id]);
+        $targetUser->delete(); // Soft delete the user
+
+        $response = $this->deleteJson("/api/users/{$targetUser->id}/force");
+
+        $response->assertStatus(Response::HTTP_OK);
+
+        $this->assertDatabaseMissing('users', [
+            'id' => $targetUser->id
+        ]);
     }
 } 

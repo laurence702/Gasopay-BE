@@ -14,11 +14,22 @@ class UpdateUserProfileRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Ensure the authenticated user is updating their own profile.
-        // Assuming the route parameter {userProfile} is bound to a UserProfile model.
+        // Ensure the authenticated user is updating their own profile or is an admin
         $userProfile = $this->route('userProfile');
+        $user = $this->user();
 
-        return $userProfile && $this->user() && $userProfile->user_id === $this->user()->id;
+        if (!$userProfile || !$user) {
+            return false;
+        }
+
+        // Allow if user is updating their own profile
+        if ($userProfile->user_id === $user->id) {
+            return true;
+        }
+
+        // Allow if user is an admin
+        return $user->role === \App\Enums\RoleEnum::Admin->value || 
+               $user->role === \App\Enums\RoleEnum::SuperAdmin->value;
     }
 
     /**

@@ -22,6 +22,18 @@ class BranchAdmin
                 'message' => 'You need branch admin role to access this resource.'
             ], 403); // Using 403 Forbidden instead of 401 Unauthorized
         }
+
+        // Get the branch ID from the route parameter
+        $branchParam = $request->route('branch');
+        $branchId = $branchParam instanceof \App\Models\Branch ? $branchParam->id : $branchParam;
+
+        // If the user is trying to modify their own branch, deny access
+        if ($request->user()->branch_id === $branchId) {
+            return response()->json([
+                'message' => 'You cannot modify your own branch.'
+            ], 403);
+        }
+
         return $next($request);
     }
 }

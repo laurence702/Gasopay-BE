@@ -32,26 +32,60 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 Route::get('/me', [AuthController::class, 'loggedInUser'])->middleware('auth:sanctum')->name('user');
 
 Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
-Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
 
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
+    Route::get('/branches/{branch}', [BranchController::class, 'show'])
+        ->missing(function () {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        });
+
+    // Branch admin routes
+    Route::middleware([BranchAdmin::class])->group(function () {
+        Route::put('/branches/{branch}', [BranchController::class, 'update'])
+            ->missing(function () {
+                return response()->json(['message' => 'Branch not found.'], 404);
+            });
+        Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])
+            ->missing(function () {
+                return response()->json(['message' => 'Branch not found.'], 404);
+            });
+    });
+});
+
+// Super Admin routes
+Route::middleware(['auth:sanctum', SuperAdmin::class])->prefix('super-admin')->group(function () {
+    // Branch management routes
+    Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
+    Route::put('/branches/{branch}', [BranchController::class, 'update'])
+        ->missing(function () {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        });
+    Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])
+        ->missing(function () {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        });
+    Route::delete('/branches/{branch}/force', [BranchController::class, 'forceDelete'])
+        ->missing(function () {
+            return response()->json(['message' => 'Branch not found.'], 404);
+        });
+});
+
+// User routes
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::middleware(['throttle:60,1'])->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
-       // Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update'); // This will be for user self-update later
-      //  Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
-       
     });
 
     // User routes with different rate limiting
     Route::middleware(['throttle:10,1'])->group(function () {
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
-        Route::post('/users/{id}/restore', [UserController::class, 'restore'])->withTrashed()->name('users.restore');
-        Route::delete('/users/{id}/force', [UserController::class, 'forceDelete'])->withTrashed()->name('users.forceDelete');
-        Route::post('/users/{user}/ban', [UserController::class, 'ban'])
-            ->name('users.ban');
-        Route::post('/users/{user}/unban', [UserController::class, 'unban'])
-            ->name('users.unban');
+        Route::post('/users/{user}/restore', [UserController::class, 'restore'])->name('users.restore');
+        Route::delete('/users/{user}/force', [UserController::class, 'forceDelete'])->name('users.forceDelete');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::post('/users/{user}/ban', [UserController::class, 'ban'])->middleware([CheckAdminOrSuperAdmin::class])->name('users.ban');
+        Route::post('/users/{user}/verify', [UserController::class, 'verifyRider'])->middleware([CheckAdminOrSuperAdmin::class])->name('users.verify');
     });
 
     Route::put('/riders/verification', [UserController::class, 'updateVerificationStatus'])
@@ -68,13 +102,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/user-profiles/{userProfile}', [UserProfileController::class, 'update'])->name('user-profiles.update');
     Route::delete('/user-profiles/{userProfile}', [UserProfileController::class, 'destroy'])->name('user-profiles.destroy');
 
-    // Branch routes - accessible to all authenticated users
-    // Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
-    Route::get('/branches/{branch}', [BranchController::class, 'show'])
-        ->missing(function () {
-            return response()->json(['message' => 'Branch not found.'], 404);
-        });
-
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
 
@@ -82,51 +109,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('payment-histories', PaymentHistoryController::class);
     Route::post('payment-histories/{paymentHistory}/mark-cash', [PaymentHistoryController::class, 'markCashPayment'])->name('payment-histories.mark-cash');
     Route::post('payment-histories/{paymentHistory}/proof', [PaymentProofController::class, 'submit'])->name('payment-histories.proof.submit');
-});
-Route::middleware(['auth:sanctum'])->group(function () {
-    // Order management routes
-    // Route::post('/orders', [OrderController::class, 'createOrder'])->name('branch-admin.create-order');
-    Route::put('/orders/{order}', [OrderController::class, 'update'])->name('orders.update');
-    Route::delete('/orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
-
-    // Payment routes (REMOVED from here - MOVED to general auth:sanctum group)
-    // Route::apiResource('payment-histories', PaymentHistoryController::class);
-    // Route::post('payment-histories/{paymentHistory}/mark-cash', [PaymentHistoryController::class, 'markCashPayment']);
-
-    // Route::post('payment-histories/{paymentHistory}/proof', [PaymentProofController::class, 'submit']); // Also moved
-    Route::post('payment-proofs/{paymentProof}/approve', [PaymentProofController::class, 'approve']);
-
-    // Delete product
-    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
-});
-
-// Super Admin routes
-Route::middleware(['auth:sanctum', SuperAdmin::class])->prefix('super-admin')->group(function () {
-    // User management - Super Admin can update any user
-    Route::put('/users/{user}', [UserController::class, 'superAdminUpdate'])->name('super-admin.users.update');
-
-    // Branch management routes
-    Route::post('/branches', [BranchController::class, 'store'])->name('branches.store');
-    Route::put('/branches/{branch}', [BranchController::class, 'update'])
-        ->missing(function () {
-            return response()->json(['message' => 'Branch not found.'], 404);
-        });
-    Route::delete('/branches/{branch}', [BranchController::class, 'destroy'])
-        ->missing(function () {
-            return response()->json(['message' => 'Branch not found.'], 404);
-        });
-
-    // Product management routes
-    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
-    Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
-    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
-
-    //Payment routes
-    // Route::apiResource('payment-histories', PaymentHistoryController::class);
-    // Route::post('payment-histories/{paymentHistory}/mark-cash', [PaymentHistoryController::class, 'markCashPayment']);
-
-    // Route::post('payment-histories/{paymentHistory}/proof', [PaymentProofController::class, 'submit']); // Also moved
-    Route::post('payment-proofs/{paymentProof}/approve', [PaymentProofController::class, 'approve']);
 });
 
 // Branch Admin Dashboard routes
@@ -167,9 +149,7 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\BranchAdmin::class])->pr
         ->name('branch-admin.products');
     Route::get('/products/{id}', [App\Http\Controllers\Api\BranchProductController::class, 'getProduct'])
         ->name('branch-admin.product');
-    Route::post('/price-quote', [App\Http\Controllers\Api\BranchProductController::class, 'createPriceQuote'])
-        ->name('branch-admin.price-quote');
-
+    
     // QR Scanner
     Route::post('/scan', [App\Http\Controllers\Api\QRScannerController::class, 'processScan'])
         ->name('branch-admin.scan');

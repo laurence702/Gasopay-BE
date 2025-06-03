@@ -19,6 +19,10 @@ use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use App\Http\Requests\CreateBranchRequest;
 use App\Http\Requests\UpdateBranchRequest;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Models\Order;
 
 class BranchController extends BaseController
 {
@@ -26,15 +30,14 @@ class BranchController extends BaseController
 
     public function index()
     {
-       // $this->authorize('viewAny', Branch::class);
-        $branches = Branch::query()
-            ->when(request()->search, function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('location', 'like', "%{$search}%");
-            })
-            ->paginate(10);
+        $query = Branch::query();
 
-        return BranchResource::collection($branches);
+        if ($search = request('search')) {
+            $query->where('name', 'like', "%{$search}%")
+                ->orWhere('location', 'like', "%{$search}%");
+        }
+
+        return BranchResource::collection($query->paginate());
     }
 
     /**
@@ -42,27 +45,26 @@ class BranchController extends BaseController
      */
     public function store(CreateBranchRequest $request)
     {
-        $this->authorize('create', Branch::class);
+        $validatedData = $request->validated();
         
-        $validated = $request->validated();
-
-        // Create a new admin user for the branch
-        $admin = User::create([
-            'name' => $validated['name'] . ' Admin',
-            'email' => $validated['email'] ?? strtolower(str_replace(' ', '', $validated['name'])) . '@gasopay.com',
-            'password' => bcrypt($validated['password'] ?? 'password'),
-            'role' => 'Admin',
-        ]);
-
-        // Create the branch
+        // Create the branch first
         $branch = Branch::create([
-            'name' => $validated['name'],
-            'location' => $validated['location'],
-            'branch_phone' => $validated['branch_phone'],
-            'branch_admin' => $admin->id,
+            'name' => $validatedData['name'],
+            'location' => $validatedData['location'],
+            'branch_phone' => $validatedData['branch_phone'],
         ]);
 
-        return new BranchResource($branch->load('branchAdmin'));
+        // Create the admin user for this branch
+        $admin = User::create([
+            'fullname' => $validatedData['fullname'],
+            'email' => $validatedData['email'],
+            'password' => Hash::make($validatedData['password']),
+            'role' => RoleEnum::Admin->value,
+            'branch_id' => $branch->id,
+            'phone' => $validatedData['phone'],
+        ]);
+
+        return new BranchResource($branch);
     }
 
     /**
@@ -83,15 +85,7 @@ class BranchController extends BaseController
      */
     public function show(Branch $branch)
     {
-        $this->authorize('view', $branch);
-        try {
-            return new BranchResource($branch->load('branchAdmin'));
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to retrieve branch',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+        return new BranchResource($branch);
     }
 
     /**
@@ -99,24 +93,26 @@ class BranchController extends BaseController
      */
     public function update(UpdateBranchRequest $request, Branch $branch)
     {
-        $this->authorize('update', $branch);
-        
-        $validated = $request->validated();
-        $branch->update($validated);
-        
-        return new BranchResource($branch->load('branchAdmin'));
+        $branch->update($request->validated());
+        return new BranchResource($branch);
     }
 
     /**
-     * Remove the specified branch from storage.
+     * Soft delete the specified branch.
      */
     public function destroy(Branch $branch)
     {
-        $this->authorize('delete', $branch);
-        
-        User::where('id', $branch->branch_admin)->delete();
         $branch->delete();
-        
-        return response()->json(null, 204);
+        return response()->noContent();
+    }
+
+    /**
+     * Permanently delete the specified branch.
+     */
+    public function forceDelete($id)
+    {
+        $branch = Branch::withTrashed()->findOrFail($id);
+        $branch->forceDelete();
+        return response()->json(['message' => 'Branch permanently deleted.'], 200);
     }
 }

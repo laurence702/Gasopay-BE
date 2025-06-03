@@ -24,11 +24,13 @@ class CreateBranchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'location' => 'required|string|max:255',
-            'branch_phone' => 'required|string|max:20',
-            'email' => 'nullable|email|unique:users,email',
-            'password' => 'nullable|string|min:8',
+            'name' => ['required', 'string', 'max:255'],
+            'location' => ['required', 'string', 'max:255'],
+            'branch_phone' => ['required', 'string', 'max:20'],
+            'fullname' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8'],
+            'phone' => ['required', 'string', 'max:20'],
         ];
     }
 } 
