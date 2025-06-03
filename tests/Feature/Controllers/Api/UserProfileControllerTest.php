@@ -14,6 +14,7 @@ use App\Enums\RoleEnum;
 use Illuminate\Contracts\Auth\Authenticatable;
 use function Pest\Laravel\{getJson, postJson, putJson, deleteJson};
 use Laravel\Sanctum\Sanctum;
+use Illuminate\Http\Response;
 
 class UserProfileControllerTest extends TestCase
 {
@@ -63,7 +64,7 @@ class UserProfileControllerTest extends TestCase
 
         $response = $this->getJson('/api/user-profiles');
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
@@ -114,7 +115,7 @@ class UserProfileControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->getJson('/api/user-profiles');
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonCount(15, 'data') // Default pagination is 10
             ->assertJsonStructure([
                 'data',
@@ -134,7 +135,7 @@ class UserProfileControllerTest extends TestCase
 
         $response = $this->postJson('/api/user-profiles', $profileData);
 
-        $response->assertCreated()
+        $response->assertStatus(Response::HTTP_CREATED)
             ->assertJsonStructure([
                 'data' => [
                     'id',
@@ -178,7 +179,7 @@ class UserProfileControllerTest extends TestCase
 
         $response = $this->getJson("/api/user-profiles/{$profile->id}");
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure([
                 'data' => [
                     'id',
@@ -225,7 +226,7 @@ class UserProfileControllerTest extends TestCase
 
         $response = $this->putJson("/api/user-profiles/{$profile->id}", $updatedData);
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure([
                 'data' => [
                     'id',
@@ -269,7 +270,7 @@ class UserProfileControllerTest extends TestCase
 
         $response = $this->deleteJson("/api/user-profiles/{$profile->id}");
 
-        $response->assertNoContent();
+        $response->assertStatus(Response::HTTP_NO_CONTENT);
         $this->assertDatabaseMissing('user_profiles', ['id' => $profile->id]);
     }
 } 

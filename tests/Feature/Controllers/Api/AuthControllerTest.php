@@ -12,6 +12,7 @@ use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Branch;
+use Illuminate\Http\Response;
 
 class AuthControllerTest extends TestCase
 {
@@ -47,7 +48,7 @@ class AuthControllerTest extends TestCase
 
         $response = $this->postJson('/api/register', $userData);
 
-        $response->assertCreated()
+        $response->assertStatus(Response::HTTP_CREATED)
             ->assertJson([
                 'status' => 'success',
                 'message' => 'User created successfully',
@@ -109,7 +110,7 @@ class AuthControllerTest extends TestCase
 
         $response = $this->postJson('/api/register', $userData);
 
-        $response->assertCreated()
+        $response->assertStatus(Response::HTTP_CREATED)
             ->assertJson([
                 'status' => 'success',
                 'message' => 'User created successfully',
@@ -168,7 +169,7 @@ class AuthControllerTest extends TestCase
 
         $response = $this->postJson('/api/register', $userData);
 
-        $response->assertCreated()
+        $response->assertStatus(Response::HTTP_CREATED)
             ->assertJson([
                 'status' => 'success',
                 'message' => 'User created successfully',
@@ -210,7 +211,7 @@ class AuthControllerTest extends TestCase
 
         $response = $this->postJson('/api/register', $userData);
 
-        $response->assertStatus(422)
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
             ->assertJsonValidationErrors([
                 'address',
                 'vehicle_type',
@@ -243,7 +244,7 @@ class AuthControllerTest extends TestCase
             'password' => 'password123',
         ]);
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJson([
                 'status' => 'success',
                 'message' => 'Login successful',
@@ -272,7 +273,7 @@ class AuthControllerTest extends TestCase
             'password' => 'password123',
         ]);
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJson([
                 'status' => 'success',
                 'message' => 'Login successful',
@@ -299,7 +300,7 @@ class AuthControllerTest extends TestCase
             'password' => 'wrongpassword',
         ]);
 
-        $response->assertUnauthorized()
+        $response->assertStatus(Response::HTTP_UNAUTHORIZED)
             ->assertJson([
                 'status' => 'error',
                 'message' => 'Invalid credentials',
@@ -315,7 +316,7 @@ class AuthControllerTest extends TestCase
         ]);
 
         // Expect 401 Unauthorized because Auth::attempt will fail
-        $response->assertUnauthorized()
+        $response->assertStatus(Response::HTTP_UNAUTHORIZED)
                  ->assertJson([
                     'status' => 'error',
                     'message' => 'Invalid credentials',
@@ -331,7 +332,7 @@ class AuthControllerTest extends TestCase
 
         $response = $this->getJson('/api/me');
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure([
                 'user' => [
                     'id',
@@ -353,7 +354,7 @@ class AuthControllerTest extends TestCase
 
         $response = $this->postJson('/api/logout');
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJson([
                 'message' => 'Logged out successfully'
             ]);
@@ -362,9 +363,9 @@ class AuthControllerTest extends TestCase
     public function test_unauthenticated_user_cannot_access_protected_routes()
     {
         $response = $this->getJson('/api/me');
-        $response->assertUnauthorized();
+        $response->assertStatus(Response::HTTP_UNAUTHORIZED);
 
         $response = $this->postJson('/api/logout');
-        $response->assertUnauthorized();
+        $response->assertStatus(Response::HTTP_UNAUTHORIZED);
     }
 } 

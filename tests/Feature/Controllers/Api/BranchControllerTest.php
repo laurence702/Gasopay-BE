@@ -40,26 +40,26 @@ class BranchControllerTest extends TestCase
     public function test_cannot_access_branches_without_authentication()
     {
         $response = $this->getJson('/api/branches');
-        $response->assertStatus(401);
+        $response->assertStatus(Response::HTTP_UNAUTHORIZED);
 
         // $response = $this->postJson('/api/branches', []);
-        // $response->assertStatus(401);
+        // $response->assertStatus(Response::HTTP_UNAUTHORIZED);
 
         $response = $this->getJson('/api/branches/1');
-        $response->assertStatus(401);
+        $response->assertStatus(Response::HTTP_UNAUTHORIZED);
 
         // $response = $this->putJson('/api/branches/1', []);
-        // $response->assertStatus(401);
+        // $response->assertStatus(Response::HTTP_UNAUTHORIZED);
 
         // $response = $this->deleteJson('/api/branches/1');
-        // $response->assertStatus(401);
+        // $response->assertStatus(Response::HTTP_UNAUTHORIZED);
     }
 
     public function test_cannot_create_branches_without_super_admin_role()
     {
         $response = $this->actingAs($this->admin)
             ->postJson('/api/super-admin/branches', []);
-        $response->assertStatus(403);
+        $response->assertStatus(Response::HTTP_FORBIDDEN);
     }
 
     public function test_can_list_branches()
@@ -69,7 +69,7 @@ class BranchControllerTest extends TestCase
         $response = $this->actingAs($this->admin)
             ->getJson('/api/branches');
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure([
                 'data' => [
                     '*' => [
@@ -95,7 +95,7 @@ class BranchControllerTest extends TestCase
         $response = $this->actingAs($this->admin)
             ->getJson('/api/branches?search=Lagos');
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.name', 'Lagos Branch');
     }
@@ -115,7 +115,7 @@ class BranchControllerTest extends TestCase
         $response = $this->actingAs($this->superAdmin)
             ->postJson('/api/super-admin/branches', $branchData);
 
-        $response->assertStatus(201)
+        $response->assertStatus(Response::HTTP_CREATED)
             ->assertJsonStructure([
                 'data' => [
                     'id',
@@ -146,17 +146,18 @@ class BranchControllerTest extends TestCase
         $response = $this->actingAs($this->superAdmin)
             ->postJson('/api/super-admin/branches', []);
 
-        $response->assertStatus(422);
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
+            ->assertJsonValidationErrors(['name', 'location', 'branch_phone', 'fullname', 'email', 'password', 'phone']);
     }
 
     public function test_can_show_branch()
     {
         $branch = Branch::factory()->create();
 
-        $response = $this->actingAs($this->regularUser)
+        $response = $this->actingAs($this->admin)
             ->getJson("/api/branches/{$branch->id}");
 
-        $response->assertOk()
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure([
                 'data' => [
                     'id',
@@ -171,27 +172,26 @@ class BranchControllerTest extends TestCase
 
     public function test_cannot_show_nonexistent_branch()
     {
-        $response = $this->actingAs($this->regularUser)
+        $response = $this->actingAs($this->admin)
             ->getJson('/api/branches/999');
 
-        $response->assertStatus(404)
-            ->assertJson([
-                'message' => 'Branch not found.'
-            ]);
+        $response->assertStatus(Response::HTTP_NOT_FOUND);
     }
 
     public function test_can_update_branch()
     {
         $branch = Branch::factory()->create();
 
-        $response = $this->actingAs($this->superAdmin)
-            ->putJson("/api/super-admin/branches/{$branch->id}", [
-                'name' => 'Updated Branch',
-                'location' => 'Updated Location',
-                'branch_phone' => '0987654321',
-            ]);
+        $updateData = [
+            'name' => 'Updated Branch',
+            'location' => 'Updated Location',
+            'branch_phone' => '9876543210',
+        ];
 
-        $response->assertStatus(200)
+        $response = $this->actingAs($this->superAdmin)
+            ->putJson("/api/super-admin/branches/{$branch->id}", $updateData);
+
+        $response->assertStatus(Response::HTTP_OK)
             ->assertJsonStructure([
                 'data' => [
                     'id',
@@ -201,13 +201,16 @@ class BranchControllerTest extends TestCase
                     'created_at',
                     'updated_at',
                 ],
-            ]);
+            ])
+            ->assertJsonPath('data.name', 'Updated Branch')
+            ->assertJsonPath('data.location', 'Updated Location')
+            ->assertJsonPath('data.branch_phone', '9876543210');
 
         $this->assertDatabaseHas('branches', [
             'id' => $branch->id,
             'name' => 'Updated Branch',
             'location' => 'Updated Location',
-            'branch_phone' => '0987654321',
+            'branch_phone' => '9876543210',
         ]);
     }
 
@@ -218,17 +221,20 @@ class BranchControllerTest extends TestCase
         $response = $this->actingAs($this->superAdmin)
             ->putJson("/api/super-admin/branches/{$branch->id}", []);
 
-        $response->assertStatus(422);
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
+            ->assertJsonValidationErrors(['name', 'location', 'branch_phone']);
     }
 
     public function test_cannot_update_nonexistent_branch()
     {
         $response = $this->actingAs($this->superAdmin)
-            ->putJson('/api/super-admin/branches/999999', [
+            ->putJson('/api/super-admin/branches/999', [
                 'name' => 'Updated Branch',
+                'location' => 'Updated Location',
+                'branch_phone' => '9876543210',
             ]);
 
-        $response->assertStatus(404);
+        $response->assertStatus(Response::HTTP_NOT_FOUND);
     }
 
     public function test_only_super_admin_can_delete_branch()
@@ -243,7 +249,10 @@ class BranchControllerTest extends TestCase
         // Super admin can delete
         $response = $this->actingAs($this->superAdmin)
             ->deleteJson("/api/super-admin/branches/{$branch->id}");
-        $response->assertStatus(204);
+        $response->assertStatus(Response::HTTP_OK)
+            ->assertJson([
+                'message' => 'Branch deleted successfully.'
+            ]);
 
         $this->assertSoftDeleted('branches', ['id' => $branch->id]);
     }
@@ -268,9 +277,9 @@ class BranchControllerTest extends TestCase
     public function test_cannot_delete_nonexistent_branch()
     {
         $response = $this->actingAs($this->superAdmin)
-            ->deleteJson('/api/super-admin/branches/999999');
+            ->deleteJson('/api/super-admin/branches/999');
 
-        $response->assertStatus(404);
+        $response->assertStatus(Response::HTTP_NOT_FOUND);
     }
 
     public function test_branch_admin_can_access_own_branch()

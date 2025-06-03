@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Models\Product;
 use App\Enums\RoleEnum;
 use Laravel\Sanctum\Sanctum;
+use Illuminate\Http\Response;
 use function Pest\Laravel\{getJson, postJson, putJson, deleteJson};
 
 beforeEach(function () {
@@ -19,7 +20,7 @@ test('authenticated user can list products', function () {
 
     $response = getJson('/api/products');
 
-    $response->assertOk()
+    $response->assertStatus(Response::HTTP_OK)
         ->assertJsonStructure([
             'data' => [
                 '*' => [
@@ -46,7 +47,7 @@ test('super admin user can create a product', function () {
 
     $response = postJson('/api/products', $productData);
 
-    $response->assertStatus(403);
+    $response->assertStatus(Response::HTTP_FORBIDDEN);
 });
 
 test('any authenticated user can view a specific product', function () {
@@ -57,7 +58,7 @@ test('any authenticated user can view a specific product', function () {
 
     $response = getJson("/api/products/{$product->id}");
 
-    $response->assertOk()
+    $response->assertStatus(Response::HTTP_OK)
         ->assertJsonStructure([
             'data' => [
                 'id',
@@ -84,7 +85,7 @@ test('super_admin can update a product', function () {
 
     $response = putJson("/api/products/{$product->id}", $updatedData);
 
-    $response->assertStatus(403);
+    $response->assertStatus(Response::HTTP_FORBIDDEN);
 });
 
 test('authenticated user can delete a product', function () {
@@ -95,7 +96,7 @@ test('authenticated user can delete a product', function () {
 
     $response = deleteJson("/api/products/{$product->id}");
 
-    $response->assertStatus(403);
+    $response->assertStatus(Response::HTTP_FORBIDDEN);
 });
 
 test('unauthenticated user cannot access product endpoints', function () {
@@ -108,7 +109,7 @@ test('unauthenticated user cannot access product endpoints', function () {
     ];
 
     foreach ($responses as $response) {
-        $response->assertStatus(401);
+        $response->assertStatus(Response::HTTP_UNAUTHORIZED);
     }
 });
 
@@ -121,7 +122,7 @@ test('products can be searched', function () {
 
     $response = getJson('/api/products?search=Petrol');
 
-    $response->assertOk()
+    $response->assertStatus(Response::HTTP_OK)
         ->assertJsonCount(1, 'data')
         ->assertJsonPath('data.0.name', 'Petrol');
 }); 

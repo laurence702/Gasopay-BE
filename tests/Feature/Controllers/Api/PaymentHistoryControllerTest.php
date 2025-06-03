@@ -17,6 +17,7 @@ use Tests\TestCase;
 use Laravel\Sanctum\Sanctum;
 use Illuminate\Support\Facades\Notification; // If using Laravel notifications
 use Illuminate\Support\Str;
+use Illuminate\Http\Response;
 
 class PaymentHistoryControllerTest extends TestCase
 {
@@ -78,7 +79,7 @@ class PaymentHistoryControllerTest extends TestCase
     {
         Sanctum::actingAs($this->superAdmin);
         $response = $this->getJson(route('payment-histories.index'));
-        $response->assertStatus(200)
+        $response->assertStatus(Response::HTTP_OK)
                  ->assertJsonStructure(['data' => [], 'links' => [], 'meta' => []]);
     }
 
@@ -87,7 +88,7 @@ class PaymentHistoryControllerTest extends TestCase
         // Assuming general admin can also list all. Adjust if more specific role needed.
         Sanctum::actingAs($this->adminUser);
         $response = $this->getJson(route('payment-histories.index'));
-        $response->assertStatus(200);
+        $response->assertStatus(Response::HTTP_OK);
     }
     
     public function test_branch_admin_can_list_payment_histories()
@@ -95,7 +96,7 @@ class PaymentHistoryControllerTest extends TestCase
         Sanctum::actingAs($this->branchAdminUser);
         $response = $this->getJson(route('payment-histories.index'));
         // Assuming branch admin can also list all for now, or specific logic is in controller
-        $response->assertStatus(200);
+        $response->assertStatus(Response::HTTP_OK);
     }
 
     public function test_regular_user_can_list_payment_histories_and_sees_all_for_now()
@@ -105,7 +106,7 @@ class PaymentHistoryControllerTest extends TestCase
         // PaymentHistory::factory()->count(3)->create(); // Other user's payments
         Sanctum::actingAs($this->regularUser);
         $response = $this->getJson(route('payment-histories.index'));
-        $response->assertStatus(200);
+        $response->assertStatus(Response::HTTP_OK);
         // $response->assertJsonCount(2, 'data'); // If filtered
     }
     
@@ -113,13 +114,13 @@ class PaymentHistoryControllerTest extends TestCase
     {
         Sanctum::actingAs($this->riderUser);
         $response = $this->getJson(route('payment-histories.index'));
-        $response->assertStatus(200);
+        $response->assertStatus(Response::HTTP_OK);
     }
 
     public function test_unauthenticated_user_cannot_list_payment_histories()
     {
         $response = $this->getJson(route('payment-histories.index'));
-        $response->assertStatus(401); // Expecting 401 if auth:sanctum is active
+        $response->assertStatus(Response::HTTP_UNAUTHORIZED); // Expecting 401 if auth:sanctum is active
     }
 
     // --- Test Show ---
@@ -127,7 +128,7 @@ class PaymentHistoryControllerTest extends TestCase
     {
         Sanctum::actingAs($this->superAdmin);
         $response = $this->getJson(route('payment-histories.show', $this->paymentHistory->id));
-        $response->assertStatus(200)
+        $response->assertStatus(Response::HTTP_OK)
                  ->assertJsonPath('data.id', $this->paymentHistory->id);
     }
 
@@ -135,7 +136,7 @@ class PaymentHistoryControllerTest extends TestCase
     {
         Sanctum::actingAs($this->adminUser);
         $response = $this->getJson(route('payment-histories.show', $this->paymentHistory->id));
-        $response->assertStatus(200)
+        $response->assertStatus(Response::HTTP_OK)
                  ->assertJsonPath('data.id', $this->paymentHistory->id);
     }
 
@@ -148,7 +149,7 @@ class PaymentHistoryControllerTest extends TestCase
             'amount' => 50.00
         ]);
         $response = $this->getJson(route('payment-histories.show', $myPaymentHistory->id));
-        $response->assertStatus(200)
+        $response->assertStatus(Response::HTTP_OK)
                  ->assertJsonPath('data.id', $myPaymentHistory->id);
     }
 
@@ -169,7 +170,7 @@ class PaymentHistoryControllerTest extends TestCase
         // For now, assuming it shows if found, so this test might need adjustment based on actual policy.
         // If show method simply returns based on ID, this might pass with 200 unless a policy is in place.
         // Let's assume a policy *should* be in place for non-admins.
-        $response->assertStatus(403); // Or 404 if not found due to scoping
+        $response->assertStatus(Response::HTTP_FORBIDDEN); // Or 404 if not found due to scoping
     }
 
     public function test_view_non_existent_payment_history_returns_404()
@@ -177,7 +178,7 @@ class PaymentHistoryControllerTest extends TestCase
         Sanctum::actingAs($this->superAdmin);
         $nonExistentId = (string) Str::uuid();
         $response = $this->getJson(route('payment-histories.show', $nonExistentId));
-        $response->assertStatus(404);
+        $response->assertStatus(Response::HTTP_NOT_FOUND);
     }
 
     // --- Test Store ---
@@ -200,7 +201,7 @@ class PaymentHistoryControllerTest extends TestCase
 
         $response = $this->postJson(route('payment-histories.store'), $paymentData);
 
-        $response->assertStatus(201)
+        $response->assertStatus(Response::HTTP_CREATED)
                  ->assertJsonPath('data.payer_id', $userForStore->id)
                  ->assertJsonPath('data.order_total_amount_due', '150.00');
         
@@ -222,7 +223,7 @@ class PaymentHistoryControllerTest extends TestCase
         $paymentData = []; // Empty payload
         $response = $this->postJson(route('payment-histories.store'), $paymentData);
         // Admin CAN attempt to create (policy allows), but will fail validation with empty data.
-        $response->assertStatus(422); 
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY); 
         $response->assertJsonValidationErrors(['product_id', 'user_id', 'branch_id', 'quantity']);
     }
 
@@ -231,14 +232,14 @@ class PaymentHistoryControllerTest extends TestCase
         Sanctum::actingAs($this->regularUser);
         $paymentData = [/* ... valid data ... */];
         $response = $this->postJson(route('payment-histories.store'), $paymentData);
-        $response->assertStatus(403);
+        $response->assertStatus(Response::HTTP_FORBIDDEN);
     }
 
     public function test_create_payment_history_validates_request_for_required_fields()
     {
         Sanctum::actingAs($this->superAdmin);
         $response = $this->postJson(route('payment-histories.store'), []);
-        $response->assertStatus(422)
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
                  ->assertJsonValidationErrors(['product_id', 'user_id', 'branch_id', 'quantity']);
     }
 
@@ -255,7 +256,7 @@ class PaymentHistoryControllerTest extends TestCase
             'quantity' => 1,
         ];
         $response = $this->postJson(route('payment-histories.store'), $paymentData);
-        $response->assertStatus(422);
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
         $response->assertJsonValidationErrors(['product_id']);
     }
 
@@ -272,7 +273,7 @@ class PaymentHistoryControllerTest extends TestCase
 
         $response = $this->putJson(route('payment-histories.update', $this->paymentHistory->id), $updateData);
 
-        $response->assertStatus(200)
+        $response->assertStatus(Response::HTTP_OK)
                  ->assertJsonPath('data.status', $newStatus)
                  ->assertJsonPath('data.transaction_amount', '123.45');
         
@@ -287,7 +288,7 @@ class PaymentHistoryControllerTest extends TestCase
         $newStatus = PaymentStatusEnum::Paid->value;
         $updateData = ['status' => $newStatus]; 
         $response = $this->putJson(route('payment-histories.update', $this->paymentHistory->id), $updateData);
-        $response->assertStatus(200); // Admins CAN update based on current policy
+        $response->assertStatus(Response::HTTP_OK); // Admins CAN update based on current policy
         $this->paymentHistory->refresh();
         $this->assertEquals($newStatus, $this->paymentHistory->status->value);
     }
@@ -297,7 +298,7 @@ class PaymentHistoryControllerTest extends TestCase
         Sanctum::actingAs($this->regularUser);
         $updateData = ['quantity' => 5];
         $response = $this->putJson(route('payment-histories.update', $this->paymentHistory->id), $updateData);
-        $response->assertStatus(403);
+        $response->assertStatus(Response::HTTP_FORBIDDEN);
     }
 
     public function test_update_payment_history_validates_fields()
@@ -306,7 +307,7 @@ class PaymentHistoryControllerTest extends TestCase
         // Example: sending invalid status enum
         $updateData = ['status' => 'invalid_status_value']; 
         $response = $this->putJson(route('payment-histories.update', $this->paymentHistory->id), $updateData);
-        $response->assertStatus(422) // Assuming UpdatePaymentHistoryRequest validates enum
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY) // Assuming UpdatePaymentHistoryRequest validates enum
                  ->assertJsonValidationErrors(['status']);
     }
 
@@ -322,7 +323,7 @@ class PaymentHistoryControllerTest extends TestCase
 
         $response = $this->deleteJson(route('payment-histories.destroy', $paymentHistoryToDelete->id));
 
-        $response->assertStatus(204); // No content
+        $response->assertStatus(Response::HTTP_NO_CONTENT); // No content
         $this->assertSoftDeleted('payment_histories', ['id' => $paymentHistoryToDelete->id]);
     }
 
@@ -330,7 +331,7 @@ class PaymentHistoryControllerTest extends TestCase
     {
         Sanctum::actingAs($this->adminUser);
         $response = $this->deleteJson(route('payment-histories.destroy', $this->paymentHistory->id));
-        $response->assertStatus(403);
+        $response->assertStatus(Response::HTTP_FORBIDDEN);
         $this->assertNotSoftDeleted('payment_histories', ['id' => $this->paymentHistory->id]);
     }
 
@@ -338,7 +339,7 @@ class PaymentHistoryControllerTest extends TestCase
     {
         Sanctum::actingAs($this->regularUser);
         $response = $this->deleteJson(route('payment-histories.destroy', $this->paymentHistory->id));
-        $response->assertStatus(403);
+        $response->assertStatus(Response::HTTP_FORBIDDEN);
         $this->assertNotSoftDeleted('payment_histories', ['id' => $this->paymentHistory->id]);
     }
 
@@ -347,7 +348,7 @@ class PaymentHistoryControllerTest extends TestCase
         Sanctum::actingAs($this->superAdmin);
         $nonExistentId = (string) Str::uuid();
         $response = $this->deleteJson(route('payment-histories.destroy', $nonExistentId));
-        $response->assertStatus(404);
+        $response->assertStatus(Response::HTTP_NOT_FOUND);
     }
 
     // --- Test MarkCashPayment ---
@@ -366,7 +367,7 @@ class PaymentHistoryControllerTest extends TestCase
         $payload = ['amount' => 100.00];
         $response = $this->postJson(route('payment-histories.mark-cash', $paymentToMark->id), $payload);
 
-        $response->assertStatus(200)
+        $response->assertStatus(Response::HTTP_OK)
                  ->assertJson(['message' => 'Cash payment marked successfully']);
         
         $paymentToMark->refresh();
@@ -391,7 +392,7 @@ class PaymentHistoryControllerTest extends TestCase
         $payload = ['amount' => 100.00];
         $response = $this->postJson(route('payment-histories.mark-cash', $paymentToMark->id), $payload);
 
-        $response->assertStatus(200);
+        $response->assertStatus(Response::HTTP_OK);
         $paymentToMark->refresh();
         $this->assertEquals(PaymentStatusEnum::Paid->value, $paymentToMark->status->value); 
     }
@@ -411,7 +412,7 @@ class PaymentHistoryControllerTest extends TestCase
         ]);
         $payload = ['amount' => $paymentToMark->amount];
         $response = $this->postJson(route('payment-histories.mark-cash', $paymentToMark->id), $payload);
-        $response->assertStatus(200);
+        $response->assertStatus(Response::HTTP_OK);
     }
 
     public function test_regular_user_cannot_mark_cash_payment()
@@ -419,22 +420,22 @@ class PaymentHistoryControllerTest extends TestCase
         Sanctum::actingAs($this->regularUser);
         $payload = ['amount' => 50.00];
         $response = $this->postJson(route('payment-histories.mark-cash', $this->paymentHistory->id), $payload);
-        $response->assertStatus(403);
+        $response->assertStatus(Response::HTTP_FORBIDDEN);
     }
 
     public function test_mark_cash_payment_validates_amount()
     {
         Sanctum::actingAs($this->adminUser);
         $response = $this->postJson(route('payment-histories.mark-cash', $this->paymentHistory->id), []);
-        $response->assertStatus(422)
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
                  ->assertJsonValidationErrors(['amount']);
         
         $response = $this->postJson(route('payment-histories.mark-cash', $this->paymentHistory->id), ['amount' => 'not_a_number']);
-        $response->assertStatus(422)
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
                  ->assertJsonValidationErrors(['amount']);
 
         $response = $this->postJson(route('payment-histories.mark-cash', $this->paymentHistory->id), ['amount' => 0]);
-        $response->assertStatus(422) // Assuming amount must be > 0
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY) // Assuming amount must be > 0
                  ->assertJsonValidationErrors(['amount']);
     }
 }
