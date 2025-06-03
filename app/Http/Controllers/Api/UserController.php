@@ -201,30 +201,55 @@ class UserController extends Controller
     public function ban(Request $request, User $user): JsonResponse
     {
         try {
-            Log::info('Request payload for ban:', ['request' => $request->all()]);
+            Log::info('Ban request details:', [
+                'request' => $request->all(),
+                'target_user_id' => $user->id,
+                'target_user_role' => $user->role,
+                'acting_user_id' => $request->user()->id,
+                'acting_user_role' => $request->user()->role,
+                'is_banned' => $user->banned_at ? true : false
+            ]);
+
+            $actingUserRole = $request->user()->role;
+            $targetUserRole = $user->role;
+
             // Only Admins and SuperAdmins can ban users
-            if (!in_array($request->user()->role, [RoleEnum::Admin->value, RoleEnum::SuperAdmin->value])) {
+            if (!in_array($actingUserRole, [RoleEnum::Admin, RoleEnum::SuperAdmin])) {
+                Log::info('Unauthorized user attempted to ban', ['user_role' => $actingUserRole]);
                 return $this->errorResponse('You are not authorized to ban users.', Response::HTTP_FORBIDDEN);
             }
             // Cannot ban SuperAdmin
-            if ($user->role === RoleEnum::SuperAdmin->value) {
+            if ($targetUserRole === RoleEnum::SuperAdmin) {
+                Log::info('Attempted to ban SuperAdmin', ['user_id' => $user->id]);
                 return $this->errorResponse('Cannot ban a Super Admin.', Response::HTTP_FORBIDDEN);
             }
             // Cannot ban self
             if ($request->user()->id === $user->id) {
+                Log::info('User attempted to ban themselves', ['user_id' => $user->id]);
                 return $this->errorResponse('You cannot ban yourself.', Response::HTTP_FORBIDDEN);
             }
             // Cannot ban already banned user
             if ($user->banned_at) {
+                Log::info('Attempted to ban already banned user', ['user_id' => $user->id]);
                 return $this->errorResponse('User is already banned.', Response::HTTP_FORBIDDEN);
             }
+
             $request->validate([
                 'ban_reason' => 'nullable|string|max:255',
             ]);
+
             $user->banned_at = now();
             $user->ban_reason = $request->input('ban_reason');
             $user->save();
+            
             $this->flushUserCache($user->id);
+            
+            Log::info('User banned successfully', [
+                'user_id' => $user->id,
+                'banned_at' => $user->banned_at,
+                'banned_by' => $request->user()->id
+            ]);
+            
             return $this->successResponse(new UserResource($user->refresh()), 'User banned successfully.');
         } catch (\Illuminate\Validation\ValidationException $e) {
             throw $e;
@@ -314,18 +339,31 @@ class UserController extends Controller
             ]);
 
             $rider = User::findOrFail($validated['rider_id']);
+            
+            Log::info('Rider details:', [
+                'rider_id' => $rider->id,
+                'rider_role' => $rider->role,
+                'has_profile' => $rider->userProfile ? true : false,
+                'acting_user_role' => $request->user()->role
+            ]);
 
             // Check if the user is a rider first
-            if ($rider->role !== RoleEnum::Rider->value) {
+            if ($rider->role !== RoleEnum::Rider) {
+                Log::info('User is not a rider', ['user_role' => $rider->role]);
                 return $this->errorResponse('User is not a rider.', Response::HTTP_BAD_REQUEST);
             }
             // Then check if the rider has a profile
             if (!$rider->userProfile) {
+                Log::info('Rider has no profile', ['rider_id' => $rider->id]);
                 return $this->errorResponse('Cannot verify rider without a profile.', Response::HTTP_BAD_REQUEST);
             }
 
             // Check if the authenticated user has the required role
-            if (!in_array($request->user()->role, [RoleEnum::Admin->value, RoleEnum::SuperAdmin->value])) {
+            $actingUserRole = $request->user()->role;
+            if (!in_array($actingUserRole, [RoleEnum::Admin, RoleEnum::SuperAdmin])) {
+                Log::info('Unauthorized user attempted to update verification status', [
+                    'user_role' => $actingUserRole
+                ]);
                 return $this->errorResponse('You are not authorized to update rider verification status.', Response::HTTP_FORBIDDEN);
             }
 
@@ -344,7 +382,6 @@ class UserController extends Controller
 
             return $response;
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // Return default Laravel validation error response
             throw $e;
         } catch (\Exception $e) {
             Log::error('Error updating rider verification status: ' . $e->getMessage());
