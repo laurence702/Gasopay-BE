@@ -84,12 +84,12 @@ class UserPolicy
     public function ban(User $user, User $targetUser): bool
     {
         // Only Super Admins can ban users
-        if ($user->role !== RoleEnum::SuperAdmin->value) {
+        if ($user->role !== RoleEnum::SuperAdmin) {
             return false;
         }
 
         // Super Admins cannot ban other Super Admins
-        if ($targetUser->role === RoleEnum::SuperAdmin->value) {
+        if ($targetUser->role === RoleEnum::SuperAdmin) {
             return false;
         }
 

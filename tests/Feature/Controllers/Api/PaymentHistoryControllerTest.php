@@ -249,8 +249,12 @@ class PaymentHistoryControllerTest extends TestCase
         $userForTest = User::factory()->create();
         $branchForTest = Branch::factory()->create();
 
+        // Use a product ID that definitely doesn't exist
+        $maxProductId = Product::max('id') ?? 0;
+        $nonExistentProductId = $maxProductId + 1000;
+
         $paymentData = [
-            'product_id' => 'non_existent_product_id',
+            'product_id' => $nonExistentProductId,
             'user_id' => $userForTest->id,
             'branch_id' => $branchForTest->id,
             'quantity' => 1,

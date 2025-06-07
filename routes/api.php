@@ -94,6 +94,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Product routes
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
+    Route::post('/products', [ProductController::class, 'store'])->middleware([CheckAdminOrSuperAdmin::class])->name('products.store');
+    Route::put('/products/{product}', [ProductController::class, 'update'])->middleware([CheckAdminOrSuperAdmin::class])->name('products.update');
+    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->middleware([CheckAdminOrSuperAdmin::class])->name('products.destroy');
 
     // User Profile routes
     Route::get('/user-profiles', [UserProfileController::class, 'index'])->name('user-profiles.index');

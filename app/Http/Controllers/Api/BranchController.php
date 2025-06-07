@@ -2,27 +2,28 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Resources\BranchCollection;
-use App\Http\Resources\BranchResource;
-use App\Models\Branch;
 use App\Models\User;
+use App\Models\Order;
+use App\Models\Branch;
 use App\Enums\RoleEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Routing\Controller as BaseController;
-use Illuminate\Foundation\Validation\ValidatesRequests;
-use App\Http\Requests\CreateBranchRequest;
-use App\Http\Requests\UpdateBranchRequest;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Models\Order;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
+use App\Http\Resources\BranchResource;
+use App\Http\Resources\BranchCollection;
+use App\Http\Requests\CreateBranchRequest;
+use App\Http\Requests\UpdateBranchRequest;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Foundation\Validation\ValidatesRequests;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class BranchController extends BaseController
 {
@@ -109,9 +110,8 @@ class BranchController extends BaseController
     /**
      * Permanently delete the specified branch.
      */
-    public function forceDelete($id)
+    public function forceDelete(Branch $branch)
     {
-        $branch = Branch::withTrashed()->findOrFail($id);
         $branch->forceDelete();
         return response()->json(['message' => 'Branch permanently deleted.'], 200);
     }

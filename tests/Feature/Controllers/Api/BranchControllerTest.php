@@ -244,15 +244,17 @@ class BranchControllerTest extends TestCase
         // Regular user cannot delete
         $response = $this->actingAs($this->regularUser)
             ->deleteJson("/api/super-admin/branches/{$branch->id}");
-        $response->assertStatus(403);
+        $response->assertForbidden();
+
+        // Admin cannot delete
+        $response = $this->actingAs($this->admin)
+            ->deleteJson("/api/super-admin/branches/{$branch->id}");
+        $response->assertForbidden();
 
         // Super admin can delete
         $response = $this->actingAs($this->superAdmin)
             ->deleteJson("/api/super-admin/branches/{$branch->id}");
-        $response->assertStatus(Response::HTTP_OK)
-            ->assertJson([
-                'message' => 'Branch deleted successfully.'
-            ]);
+        $response->assertStatus(Response::HTTP_NO_CONTENT);
 
         $this->assertSoftDeleted('branches', ['id' => $branch->id]);
     }
@@ -260,17 +262,23 @@ class BranchControllerTest extends TestCase
     public function test_only_super_admin_can_force_delete_branch()
     {
         $branch = Branch::factory()->create();
+        $branch->delete();
 
         // Regular user cannot force delete
         $response = $this->actingAs($this->regularUser)
             ->deleteJson("/api/super-admin/branches/{$branch->id}/force");
-        $response->assertStatus(403);
-
+        $response->assertForbidden();
+        // Admin cannot force delete
+        $response = $this->actingAs($this->admin)
+        ->deleteJson("/api/super-admin/branches/{$branch->id}/force");
+        
         // Super admin can force delete
         $response = $this->actingAs($this->superAdmin)
             ->deleteJson("/api/super-admin/branches/{$branch->id}/force");
-        $response->assertStatus(200);
-
+        $response->assertStatus(Response::HTTP_OK)
+            ->assertJson([
+                'message' => 'Branch permanently deleted.'
+            ]);
         $this->assertDatabaseMissing('branches', ['id' => $branch->id]);
     }
 
@@ -352,4 +360,4 @@ class BranchControllerTest extends TestCase
 
         $response->assertStatus(403);
     }
-} 
+}

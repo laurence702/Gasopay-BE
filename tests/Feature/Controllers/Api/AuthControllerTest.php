@@ -132,7 +132,7 @@ class AuthControllerTest extends TestCase
                         'guarantors_address',
                         'guarantors_phone',
                         'vehicle_type',
-                        'profile_pic_url',
+                        'profilePicUrl',
                     ],
                 ],
             ]);

@@ -6,6 +6,7 @@ use App\Enums\VehicleTypeEnum;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Enums\RoleEnum;
 
 class UpdateUserProfileRequest extends FormRequest
 {
@@ -28,8 +29,8 @@ class UpdateUserProfileRequest extends FormRequest
         }
 
         // Allow if user is an admin
-        return $user->role === \App\Enums\RoleEnum::Admin->value || 
-               $user->role === \App\Enums\RoleEnum::SuperAdmin->value;
+        return $user->role === RoleEnum::Admin || 
+               $user->role === RoleEnum::SuperAdmin;
     }
 
     /**

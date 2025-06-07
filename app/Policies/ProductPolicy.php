@@ -32,7 +32,7 @@ class ProductPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasRole(RoleEnum::SuperAdmin->value);
+        return $user->hasRole(RoleEnum::SuperAdmin);
     }
 
     /**
@@ -40,7 +40,7 @@ class ProductPolicy
      */
     public function update(User $user, Product $product): bool
     {
-        return $user->hasRole(RoleEnum::SuperAdmin->value);
+        return $user->hasRole(RoleEnum::SuperAdmin);
     }
 
     /**
@@ -48,6 +48,6 @@ class ProductPolicy
      */
     public function delete(User $user, Product $product): bool
     {
-        return $user->hasRole(RoleEnum::SuperAdmin->value);
+        return $user->hasRole(RoleEnum::SuperAdmin);
     }
 } 

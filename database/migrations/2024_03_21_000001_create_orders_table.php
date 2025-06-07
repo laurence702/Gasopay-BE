@@ -19,7 +19,7 @@ return new class extends Migration
 
         Schema::create('orders', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('order_reference', 14)->unique()->nullable();
+            $table->string('order_reference', 30)->unique()->nullable();
             $table->foreignUlid('payer_id')->constrained('users')->cascadeOnDelete()->comment('e.g rider, user');
             $table->ulid('created_by')->nullable()->after('payer_id');
             $table->ulid('branch_id')->nullable();

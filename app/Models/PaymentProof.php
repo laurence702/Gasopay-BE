@@ -7,10 +7,12 @@ use App\Enums\ProofStatusEnum;
 use App\Enums\PaymentMethodEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PaymentProof extends Model
 {
-    use HasUuids;
+    use HasUuids, HasFactory;
 
     /**
      * @var bool
@@ -35,16 +37,16 @@ class PaymentProof extends Model
     ];
 
     protected $casts = [
-        'status' => ProofStatusEnum::class,
         'approved_at' => 'datetime',
+        'status' => ProofStatusEnum::class,
     ];
 
-    public function paymentHistory()
+    public function paymentHistory(): BelongsTo
     {
         return $this->belongsTo(PaymentHistory::class);
     }
 
-    public function approver()
+    public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
     }

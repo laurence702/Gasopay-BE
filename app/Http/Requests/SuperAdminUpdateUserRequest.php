@@ -16,7 +16,7 @@ class SuperAdminUpdateUserRequest extends FormRequest
     public function authorize(): bool
     {
         // Only Super Admins are authorized to use this request.
-        return $this->user()->role === RoleEnum::SuperAdmin->value;
+        return $this->user()->role === RoleEnum::SuperAdmin;
     }
 
     /**
@@ -30,7 +30,7 @@ class SuperAdminUpdateUserRequest extends FormRequest
             'fullname' => ['sometimes', 'string', 'max:255'],
             'email' => ['sometimes', 'string', 'email', 'max:255', Rule::unique('users')->ignore($this->user)],
             'phone' => ['sometimes', 'string', 'max:20', Rule::unique('users')->ignore($this->user)],
-            'role' => ['sometimes', new Enum(RoleEnum::class), Rule::notIn([RoleEnum::SuperAdmin->value])], // Super Admin cannot change another user to Super Admin
+            'role' => ['sometimes', new Enum(RoleEnum::class), Rule::notIn([RoleEnum::SuperAdmin])], // Super Admin cannot change another user to Super Admin
             'branch_id' => ['nullable', 'exists:branches,id'],
             // Add other fields a Super Admin might update, e.g., status, verification fields etc.
             // 'status' => ['sometimes', new Enum(UserStatusEnum::class)],

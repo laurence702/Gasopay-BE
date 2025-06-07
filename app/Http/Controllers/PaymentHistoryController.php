@@ -2,21 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\Request;
-use App\Models\PaymentHistory;
-use App\Models\Order;
-use App\Enums\PaymentMethodEnum;
-use App\Enums\PaymentStatusEnum;
 use App\Enums\OrderStatusEnum;
 use App\Enums\PaymentTypeEnum;
+use App\Models\PaymentHistory;
+use App\Enums\PaymentMethodEnum;
+use App\Enums\PaymentStatusEnum;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Log;
 use App\Http\Requests\MarkCashPaymentRequest;
 use App\Http\Resources\PaymentHistoryResource;
+use Illuminate\Validation\ValidationException;
 use App\Http\Requests\StorePaymentHistoryRequest;
 use App\Http\Requests\UpdatePaymentHistoryRequest;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class PaymentHistoryController extends Controller
 {
@@ -50,6 +52,8 @@ class PaymentHistoryController extends Controller
         $this->authorize('create', PaymentHistory::class);
 
         $data = $request->validated();
+        
+        // The product_id validation in StorePaymentHistoryRequest ensures the product exists
         $productModel = Product::findOrFail($data['product_id']);
         $amount_due = $productModel->price * $data['quantity'];
 

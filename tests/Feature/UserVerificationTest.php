@@ -59,7 +59,7 @@ class UserVerificationTest extends TestCase
 
         $response->assertStatus(200)
                  ->assertJsonPath('data.verification_status', ProfileVerificationStatusEnum::VERIFIED->value)
-                 ->assertJsonPath('message', 'Rider status updated to verified.');
+                 ->assertJsonPath('message', 'Rider verification status updated successfully.');
 
         $this->rider->refresh();
         $this->assertEquals(ProfileVerificationStatusEnum::VERIFIED, $this->rider->verification_status);
@@ -75,7 +75,7 @@ class UserVerificationTest extends TestCase
 
         $response->assertStatus(200)
                  ->assertJsonPath('data.verification_status', ProfileVerificationStatusEnum::REJECTED->value)
-                 ->assertJsonPath('message', 'Rider status updated to rejected.');
+                 ->assertJsonPath('message', 'Rider verification status updated successfully.');
 
         $this->rider->refresh();
         $this->assertEquals(ProfileVerificationStatusEnum::REJECTED, $this->rider->verification_status);
@@ -91,7 +91,7 @@ class UserVerificationTest extends TestCase
 
         $response->assertStatus(200)
                  ->assertJsonPath('data.verification_status', ProfileVerificationStatusEnum::PENDING->value)
-                 ->assertJsonPath('message', 'Rider status updated to pending.');
+                 ->assertJsonPath('message', 'Rider verification status updated successfully.');
 
         $this->rider->refresh();
         $this->assertEquals(ProfileVerificationStatusEnum::PENDING, $this->rider->verification_status);

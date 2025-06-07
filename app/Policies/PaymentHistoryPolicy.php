@@ -16,7 +16,7 @@ class PaymentHistoryPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(RoleEnum::SuperAdmin->value) || $user->hasRole(RoleEnum::Admin->value);
+        return $user->hasRole(RoleEnum::SuperAdmin) || $user->hasRole(RoleEnum::Admin);
     }
 
     /**
@@ -24,7 +24,7 @@ class PaymentHistoryPolicy
      */
     public function view(User $user, PaymentHistory $paymentHistory): bool
     {
-        if ($user->hasRole(RoleEnum::SuperAdmin->value) || $user->hasRole(RoleEnum::Admin->value)) {
+        if ($user->hasRole(RoleEnum::SuperAdmin) || $user->hasRole(RoleEnum::Admin)) {
             return true;
         }
         return $user->id === $paymentHistory->user_id;
@@ -35,7 +35,7 @@ class PaymentHistoryPolicy
      */
     public function create(User $user): bool
     {
-        return $user->hasRole(RoleEnum::SuperAdmin->value) || $user->hasRole(RoleEnum::Admin->value);
+        return $user->hasRole(RoleEnum::SuperAdmin) || $user->hasRole(RoleEnum::Admin);
     }
 
     /**
@@ -45,7 +45,7 @@ class PaymentHistoryPolicy
     {
         // Only allow updating non-critical fields or by specific roles, e.g., SuperAdmin
         // Add more granular checks if needed, e.g. payment status is pending
-        return $user->hasRole(RoleEnum::SuperAdmin->value) || $user->hasRole(RoleEnum::Admin->value);
+        return $user->hasRole(RoleEnum::SuperAdmin) || $user->hasRole(RoleEnum::Admin);
     }
 
     /**
@@ -53,7 +53,7 @@ class PaymentHistoryPolicy
      */
     public function delete(User $user, PaymentHistory $paymentHistory): bool
     {
-        return $user->hasRole(RoleEnum::SuperAdmin->value);
+        return $user->hasRole(RoleEnum::SuperAdmin);
     }
 
     /**
@@ -61,7 +61,7 @@ class PaymentHistoryPolicy
      */
     public function restore(User $user, PaymentHistory $paymentHistory): bool
     {
-        return $user->hasRole(RoleEnum::SuperAdmin->value);
+        return $user->hasRole(RoleEnum::SuperAdmin);
     }
 
     /**
@@ -69,7 +69,7 @@ class PaymentHistoryPolicy
      */
     public function forceDelete(User $user, PaymentHistory $paymentHistory): bool
     {
-        return $user->hasRole(RoleEnum::SuperAdmin->value);
+        return $user->hasRole(RoleEnum::SuperAdmin);
     }
 
     /**
@@ -79,7 +79,7 @@ class PaymentHistoryPolicy
     {
         // SuperAdmin or Admin can mark.
         // Further checks if admin is tied to the order's branch might be needed in the controller or request.
-        return $user->hasRole(RoleEnum::SuperAdmin->value) || 
-               $user->hasRole(RoleEnum::Admin->value);
+        return $user->hasRole(RoleEnum::SuperAdmin) || 
+               $user->hasRole(RoleEnum::Admin);
     }
 }

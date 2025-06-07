@@ -47,7 +47,17 @@ test('super admin user can create a product', function () {
 
     $response = postJson('/api/products', $productData);
 
-    $response->assertStatus(Response::HTTP_FORBIDDEN);
+    $response->assertStatus(Response::HTTP_CREATED)
+        ->assertJsonStructure([
+            'data' => [
+                'id',
+                'name',
+                'unit',
+                'price',
+                'created_at',
+                'updated_at'
+            ]
+        ]);
 });
 
 test('any authenticated user can view a specific product', function () {
@@ -85,7 +95,17 @@ test('super_admin can update a product', function () {
 
     $response = putJson("/api/products/{$product->id}", $updatedData);
 
-    $response->assertStatus(Response::HTTP_FORBIDDEN);
+    $response->assertStatus(Response::HTTP_OK)
+        ->assertJsonStructure([
+            'data' => [
+                'id',
+                'name',
+                'unit',
+                'price',
+                'created_at',
+                'updated_at'
+            ]
+        ]);
 });
 
 test('authenticated user can delete a product', function () {
@@ -96,7 +116,12 @@ test('authenticated user can delete a product', function () {
 
     $response = deleteJson("/api/products/{$product->id}");
 
-    $response->assertStatus(Response::HTTP_FORBIDDEN);
+    $response->assertStatus(Response::HTTP_OK)
+        ->assertJson([
+            'message' => 'Product deleted successfully',
+        ]);
+
+    $this->assertSoftDeleted('products', ['id' => $product->id]);
 });
 
 test('unauthenticated user cannot access product endpoints', function () {

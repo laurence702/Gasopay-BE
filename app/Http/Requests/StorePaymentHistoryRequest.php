@@ -5,6 +5,8 @@ namespace App\Http\Requests;
 use App\Enums\RoleEnum;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Enums\PaymentMethodEnum;
+use App\Enums\PaymentTypeEnum;
 
 class StorePaymentHistoryRequest extends FormRequest
 {
@@ -23,8 +25,8 @@ class StorePaymentHistoryRequest extends FormRequest
             'user_id' => 'required|exists:users,id',
             'branch_id' => 'required|exists:branches,id',
             'quantity' => 'required|integer|min:1',
-            'payment_method' => ['sometimes', 'required', 'string', Rule::in(array_column(\App\Enums\PaymentMethodEnum::cases(), 'value'))],
-            'payment_type' => ['sometimes', 'required', 'string', Rule::in(array_column(\App\Enums\PaymentTypeEnum::cases(), 'value'))],
+            'payment_method' => ['sometimes', 'required', 'string', Rule::in(array_column(PaymentMethodEnum::cases(), 'value'))],
+            'payment_type' => ['sometimes', 'required', 'string', Rule::in(array_column(PaymentTypeEnum::cases(), 'value'))],
         ];
     }
 }

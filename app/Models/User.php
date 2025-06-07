@@ -97,22 +97,16 @@ class User extends Authenticatable
     /**
      * Check if the user has a specific role.
      *
-     * @param string $role
+     * @param RoleEnum $role
      * @return bool
      */
-    public function hasRole(string $role): bool
+    public function hasRole(RoleEnum $role): bool
     {
         if (!$this->role) {
             return false;
         }
 
-        // Convert the role string to enum case
-        $roleEnum = RoleEnum::tryFrom($role);
-        if (!$roleEnum) {
-            return false;
-        }
-
-        return $this->role === $roleEnum;
+        return $this->role === $role;
     }
 
     public function canApprovePayments()
