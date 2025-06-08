@@ -10,6 +10,8 @@ use App\Enums\PaymentTypeEnum;
 use App\Models\PaymentHistory;
 use App\Enums\PaymentMethodEnum;
 use App\Enums\PaymentStatusEnum;
+use App\Enums\ProductTypeEnum;
+use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
@@ -45,7 +47,7 @@ class PaymentHistoryController extends Controller
     }
 
     /**
-     * Store a new payment transaction (SuperAdmin only).
+     * Store a new payment transaction(after admin does rider transaction or regular user orders cng)
      */
     public function store(StorePaymentHistoryRequest $request): JsonResponse
     {
@@ -53,15 +55,25 @@ class PaymentHistoryController extends Controller
 
         $data = $request->validated();
         
-        // The product_id validation in StorePaymentHistoryRequest ensures the product exists
-        $productModel = Product::findOrFail($data['product_id']);
-        $amount_due = $productModel->price * $data['quantity'];
+        // Determine product details and amount due
+        if (isset($data['product_type'])) {
+            // Use ProductService to get product price from enum
+            $productType = ProductTypeEnum::from($data['product_type']);
+            $productService = app(ProductService::class);
+            $amount_due = $productService->getPrice($productType) * $data['quantity'];
+            $productName = $productService->getDescription($productType);
+        } else {
+            // Fallback to using product_id (legacy approach)
+            $productModel = Product::findOrFail($data['product_id']);
+            $amount_due = $productModel->price * $data['quantity'];
+            $productName = $productModel->name;
+        }
 
         // Create Order first
         $order = Order::create([
             'payer_id' => $data['user_id'],
             'branch_id' => $data['branch_id'],
-            'product' => $productModel->name,
+            'product' => isset($data['product_type']) ? $data['product_type'] : $productName,
             'amount_due' => $amount_due,
             'created_by' => $request->user()->id,
             'payment_type' => $data['payment_type'] ?? PaymentTypeEnum::Full->value,

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\RoleEnum;
+use App\Enums\ProductTypeEnum;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use App\Enums\PaymentMethodEnum;
@@ -21,7 +22,8 @@ class StorePaymentHistoryRequest extends FormRequest
     public function rules()
     {
         return [
-            'product_id' => 'required|exists:products,id',
+            'product_id' => 'required_without:product_type|exists:products,id',
+            'product_type' => ['required_without:product_id', 'string', Rule::in(array_column(ProductTypeEnum::cases(), 'value'))],
             'user_id' => 'required|exists:users,id',
             'branch_id' => 'required|exists:branches,id',
             'quantity' => 'required|integer|min:1',

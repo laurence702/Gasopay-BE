@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProductTypeController;
 use App\Http\Controllers\Api\PaymentProofController;
 use App\Http\Controllers\PaymentHistoryController;
 use App\Http\Controllers\Api\UserProfileController;
@@ -97,6 +98,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/products', [ProductController::class, 'store'])->middleware([CheckAdminOrSuperAdmin::class])->name('products.store');
     Route::put('/products/{product}', [ProductController::class, 'update'])->middleware([CheckAdminOrSuperAdmin::class])->name('products.update');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->middleware([CheckAdminOrSuperAdmin::class])->name('products.destroy');
+    
+    // Product Type routes (using enum-based approach)
+    Route::get('/product-types', [ProductTypeController::class, 'index'])->name('product-types.index');
+    Route::get('/product-types/{type}', [ProductTypeController::class, 'show'])->name('product-types.show');
 
     // User Profile routes
     Route::get('/user-profiles', [UserProfileController::class, 'index'])->name('user-profiles.index');

@@ -10,6 +10,7 @@ use App\Models\PaymentHistory;
 use App\Enums\RoleEnum;
 use App\Enums\PaymentStatusEnum;
 use App\Enums\PaymentMethodEnum;
+use App\Enums\ProductTypeEnum;
 use App\Services\NotificationService; // For mocking
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
@@ -243,7 +244,8 @@ class PaymentHistoryControllerTest extends TestCase
                  ->assertJsonValidationErrors(['product_id', 'user_id', 'branch_id', 'quantity']);
     }
 
-    public function test_create_payment_history_fails_if_product_not_found()
+    // Renamed to .bak as suggested
+    public function test_create_payment_history_fails_if_product_not_found_bak()
     {
         Sanctum::actingAs($this->superAdmin);
         $userForTest = User::factory()->create();
@@ -262,6 +264,48 @@ class PaymentHistoryControllerTest extends TestCase
         $response = $this->postJson(route('payment-histories.store'), $paymentData);
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
         $response->assertJsonValidationErrors(['product_id']);
+    }
+    
+    public function test_create_payment_history_with_product_type()
+    {
+        Sanctum::actingAs($this->superAdmin);
+        $userForTest = User::factory()->create();
+        $branchForTest = Branch::factory()->create();
+
+        $paymentData = [
+            'product_type' => ProductTypeEnum::PMS->value,
+            'user_id' => $userForTest->id,
+            'branch_id' => $branchForTest->id,
+            'quantity' => 3,
+        ];
+
+        $response = $this->postJson(route('payment-histories.store'), $paymentData);
+
+        $response->assertStatus(Response::HTTP_CREATED)
+                 ->assertJsonPath('data.payer_id', $userForTest->id);
+        
+        $this->assertDatabaseHas('orders', [
+            'payer_id' => $userForTest->id,
+            'branch_id' => $branchForTest->id,
+            'product' => ProductTypeEnum::PMS->value,
+        ]);
+    }
+    
+    public function test_create_payment_history_fails_if_product_type_invalid()
+    {
+        Sanctum::actingAs($this->superAdmin);
+        $userForTest = User::factory()->create();
+        $branchForTest = Branch::factory()->create();
+
+        $paymentData = [
+            'product_type' => 'invalid_product_type',
+            'user_id' => $userForTest->id,
+            'branch_id' => $branchForTest->id,
+            'quantity' => 1,
+        ];
+        $response = $this->postJson(route('payment-histories.store'), $paymentData);
+        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
+        $response->assertJsonValidationErrors(['product_type']);
     }
 
     // --- Test Update ---

@@ -1,0 +1,686 @@
+[
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "/",
+        "name": "generated::9wzardFpTBPNONgE",
+        "action": "Closure",
+        "middleware": ["web"]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/branch-admin/activities",
+        "name": "branch-admin.activities",
+        "action": "App\\Http\\Controllers\\Api\\BranchActivityController@getRecentActivities",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/branch-admin/branch-info",
+        "name": "branch-admin.branch-info",
+        "action": "App\\Http\\Controllers\\Api\\BranchDashboardController@getBranchInfo",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/branch-admin/orders",
+        "name": "branch-admin.create-order",
+        "action": "App\\Http\\Controllers\\Api\\OrderController@createOrder",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/branch-admin/orders/history",
+        "name": "orders.history",
+        "action": "App\\Http\\Controllers\\Api\\BranchActivityController@getOrderHistory",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/branch-admin/pending-approvals",
+        "name": "branch-admin.pending-approvals",
+        "action": "App\\Http\\Controllers\\Api\\BranchRiderController@getPendingApprovals",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/branch-admin/products",
+        "name": "branch-admin.products",
+        "action": "App\\Http\\Controllers\\Api\\BranchProductController@getProducts",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/branch-admin/products/{id}",
+        "name": "branch-admin.product",
+        "action": "App\\Http\\Controllers\\Api\\BranchProductController@getProduct",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/branch-admin/riders",
+        "name": "branch-admin.riders",
+        "action": "App\\Http\\Controllers\\Api\\BranchRiderController@getRiders",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "PUT",
+        "uri": "api/branch-admin/riders/{id}/verification",
+        "name": "branch-admin.update-verification",
+        "action": "App\\Http\\Controllers\\Api\\BranchRiderController@updateVerificationStatus",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "PUT",
+        "uri": "api/branch-admin/riders/{user}",
+        "name": "branch-admin.riders.update",
+        "action": "App\\Http\\Controllers\\Api\\UserController@branchAdminUpdateRider",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/branch-admin/scan",
+        "name": "branch-admin.scan",
+        "action": "App\\Http\\Controllers\\Api\\QRScannerController@processScan",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/branch-admin/statistics",
+        "name": "branch-admin.statistics",
+        "action": "App\\Http\\Controllers\\Api\\BranchDashboardController@getStatistics",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/branches",
+        "name": "branches.index",
+        "action": "App\\Http\\Controllers\\Api\\BranchController@index",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/branches/{branch}",
+        "name": "generated::fCvAS1Lx7T2N3Hym",
+        "action": "App\\Http\\Controllers\\Api\\BranchController@show",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "PUT",
+        "uri": "api/branches/{branch}",
+        "name": "generated::9onsJdhLxRjnUHsh",
+        "action": "App\\Http\\Controllers\\Api\\BranchController@update",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "DELETE",
+        "uri": "api/branches/{branch}",
+        "name": "generated::LJOwaHQCBgjIs51m",
+        "action": "App\\Http\\Controllers\\Api\\BranchController@destroy",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\BranchAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/login",
+        "name": "login",
+        "action": "App\\Http\\Controllers\\Api\\AuthController@login",
+        "middleware": ["api"]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/logout",
+        "name": "logout",
+        "action": "App\\Http\\Controllers\\Api\\AuthController@logout",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/me",
+        "name": "user",
+        "action": "App\\Http\\Controllers\\Api\\AuthController@loggedInUser",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/orders",
+        "name": "orders.index",
+        "action": "App\\Http\\Controllers\\Api\\OrderController@index",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/orders/{order}",
+        "name": "orders.show",
+        "action": "App\\Http\\Controllers\\Api\\OrderController@show",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/payment-histories",
+        "name": "payment-histories.index",
+        "action": "App\\Http\\Controllers\\PaymentHistoryController@index",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/payment-histories",
+        "name": "payment-histories.store",
+        "action": "App\\Http\\Controllers\\PaymentHistoryController@store",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/payment-histories/{paymentHistory}/mark-cash",
+        "name": "payment-histories.mark-cash",
+        "action": "App\\Http\\Controllers\\PaymentHistoryController@markCashPayment",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/payment-histories/{paymentHistory}/proof",
+        "name": "payment-histories.proof.submit",
+        "action": "App\\Http\\Controllers\\Api\\PaymentProofController@submit",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/payment-histories/{payment_history}",
+        "name": "payment-histories.show",
+        "action": "App\\Http\\Controllers\\PaymentHistoryController@show",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "PUT|PATCH",
+        "uri": "api/payment-histories/{payment_history}",
+        "name": "payment-histories.update",
+        "action": "App\\Http\\Controllers\\PaymentHistoryController@update",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "DELETE",
+        "uri": "api/payment-histories/{payment_history}",
+        "name": "payment-histories.destroy",
+        "action": "App\\Http\\Controllers\\PaymentHistoryController@destroy",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/payment-proofs",
+        "name": "payment-proofs.store",
+        "action": "App\\Http\\Controllers\\Api\\PaymentProofController@store",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/payment-proofs",
+        "name": "payment-proofs.index",
+        "action": "App\\Http\\Controllers\\Api\\PaymentProofController@index",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\CheckAdminOrSuperAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/payment-proofs/{paymentProof}/approve",
+        "name": "payment-proofs.approve",
+        "action": "App\\Http\\Controllers\\Api\\PaymentProofController@approve",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\CheckAdminOrSuperAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/payment-proofs/{paymentProof}/reject",
+        "name": "payment-proofs.reject",
+        "action": "App\\Http\\Controllers\\Api\\PaymentProofController@reject",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\CheckAdminOrSuperAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/products",
+        "name": "products.index",
+        "action": "App\\Http\\Controllers\\Api\\ProductController@index",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/products",
+        "name": "products.store",
+        "action": "App\\Http\\Controllers\\Api\\ProductController@store",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\CheckAdminOrSuperAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/products/{product}",
+        "name": "products.show",
+        "action": "App\\Http\\Controllers\\Api\\ProductController@show",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "PUT",
+        "uri": "api/products/{product}",
+        "name": "products.update",
+        "action": "App\\Http\\Controllers\\Api\\ProductController@update",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\CheckAdminOrSuperAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "DELETE",
+        "uri": "api/products/{product}",
+        "name": "products.destroy",
+        "action": "App\\Http\\Controllers\\Api\\ProductController@destroy",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\CheckAdminOrSuperAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/register",
+        "name": "register",
+        "action": "App\\Http\\Controllers\\Api\\AuthController@register",
+        "middleware": ["api"]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/register-rider",
+        "name": "users.register_rider",
+        "action": "App\\Http\\Controllers\\Api\\UserController@register_rider",
+        "middleware": ["api"]
+    },
+    {
+        "domain": null,
+        "method": "PUT",
+        "uri": "api/riders/verification",
+        "name": "users.update_verification_status",
+        "action": "App\\Http\\Controllers\\Api\\UserController@updateVerificationStatus",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/super-admin/branches",
+        "name": "branches.store",
+        "action": "App\\Http\\Controllers\\Api\\BranchController@store",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\SuperAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "PUT",
+        "uri": "api/super-admin/branches/{branch}",
+        "name": "generated::R4bvXOybKKcahfxp",
+        "action": "App\\Http\\Controllers\\Api\\BranchController@update",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\SuperAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "DELETE",
+        "uri": "api/super-admin/branches/{branch}",
+        "name": "generated::NltQu216iscOTjjv",
+        "action": "App\\Http\\Controllers\\Api\\BranchController@destroy",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\SuperAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "DELETE",
+        "uri": "api/super-admin/branches/{branch}/force",
+        "name": "generated::EL3xH9eTg3CFW8bV",
+        "action": "App\\Http\\Controllers\\Api\\BranchController@forceDelete",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "App\\Http\\Middleware\\SuperAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/user-profiles",
+        "name": "user-profiles.index",
+        "action": "App\\Http\\Controllers\\Api\\UserProfileController@index",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/user-profiles",
+        "name": "user-profiles.store",
+        "action": "App\\Http\\Controllers\\Api\\UserProfileController@store",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/user-profiles/{userProfile}",
+        "name": "user-profiles.show",
+        "action": "App\\Http\\Controllers\\Api\\UserProfileController@show",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "PUT",
+        "uri": "api/user-profiles/{userProfile}",
+        "name": "user-profiles.update",
+        "action": "App\\Http\\Controllers\\Api\\UserProfileController@update",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "DELETE",
+        "uri": "api/user-profiles/{userProfile}",
+        "name": "user-profiles.destroy",
+        "action": "App\\Http\\Controllers\\Api\\UserProfileController@destroy",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/users",
+        "name": "users.index",
+        "action": "App\\Http\\Controllers\\Api\\UserController@index",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "Illuminate\\Routing\\Middleware\\ThrottleRequests:60,1"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "api/users/{user}",
+        "name": "users.show",
+        "action": "App\\Http\\Controllers\\Api\\UserController@show",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "Illuminate\\Routing\\Middleware\\ThrottleRequests:60,1"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "DELETE",
+        "uri": "api/users/{user}",
+        "name": "users.destroy",
+        "action": "App\\Http\\Controllers\\Api\\UserController@destroy",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "Illuminate\\Routing\\Middleware\\ThrottleRequests:10,1"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "PUT",
+        "uri": "api/users/{user}",
+        "name": "users.update",
+        "action": "App\\Http\\Controllers\\Api\\UserController@update",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "Illuminate\\Routing\\Middleware\\ThrottleRequests:10,1"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/users/{user}/ban",
+        "name": "users.ban",
+        "action": "App\\Http\\Controllers\\Api\\UserController@ban",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "Illuminate\\Routing\\Middleware\\ThrottleRequests:10,1",
+            "App\\Http\\Middleware\\CheckAdminOrSuperAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "DELETE",
+        "uri": "api/users/{user}/force",
+        "name": "users.forceDelete",
+        "action": "App\\Http\\Controllers\\Api\\UserController@forceDelete",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "Illuminate\\Routing\\Middleware\\ThrottleRequests:10,1"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/users/{user}/restore",
+        "name": "users.restore",
+        "action": "App\\Http\\Controllers\\Api\\UserController@restore",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "Illuminate\\Routing\\Middleware\\ThrottleRequests:10,1"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "POST",
+        "uri": "api/users/{user}/verify",
+        "name": "users.verify",
+        "action": "App\\Http\\Controllers\\Api\\UserController@verifyRider",
+        "middleware": [
+            "api",
+            "Illuminate\\Auth\\Middleware\\Authenticate:sanctum",
+            "Illuminate\\Routing\\Middleware\\ThrottleRequests:10,1",
+            "App\\Http\\Middleware\\CheckAdminOrSuperAdmin"
+        ]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "sanctum/csrf-cookie",
+        "name": "sanctum.csrf-cookie",
+        "action": "Laravel\\Sanctum\\Http\\Controllers\\CsrfCookieController@show",
+        "middleware": ["web"]
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "storage/{path}",
+        "name": "storage.local",
+        "action": "Closure",
+        "middleware": []
+    },
+    {
+        "domain": null,
+        "method": "GET|HEAD",
+        "uri": "up",
+        "name": "generated::R0smnzuLtoGcqY05",
+        "action": "Closure",
+        "middleware": []
+    }
+]
