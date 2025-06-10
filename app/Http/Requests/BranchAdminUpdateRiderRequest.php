@@ -16,6 +16,11 @@ class BranchAdminUpdateRiderRequest extends FormRequest
         $authenticatedUser = $this->user();
         $targetUser = $this->route('user'); // Assuming the route parameter is {user}
 
+        // Check if target user exists
+        if (!$targetUser) {
+            return false;
+        }
+
         // Check if the authenticated user is a Branch Admin
         if ($authenticatedUser->role !== RoleEnum::Admin->value) {
             return false;
@@ -38,12 +43,14 @@ class BranchAdminUpdateRiderRequest extends FormRequest
     public function rules(): array
     {
         $targetUser = $this->route('user'); // Assuming the route parameter is {user}
+        $targetUserId = $targetUser?->id;
+        $userProfileId = $targetUser?->userProfile?->id ?? null;
 
         return [
             'fullname' => ['sometimes', 'string', 'max:255'],
-            'phone' => ['sometimes', 'string', 'max:20', Rule::unique('users')->ignore($targetUser->id)],
+            'phone' => ['sometimes', 'string', 'max:20', Rule::unique('users')->ignore($targetUserId)],
             'address' => ['sometimes', 'string', 'max:255'],
-            'nin' => ['sometimes', 'string', 'max:255', Rule::unique('user_profiles')->ignore($targetUser->userProfile->id ?? null)], // Assuming NIN is on user_profiles
+            'nin' => ['sometimes', 'string', 'max:255', Rule::unique('user_profiles')->ignore($userProfileId)], // Assuming NIN is on user_profiles
             'vehicle_type' => ['sometimes', 'string', 'max:255'], // Assuming vehicle_type is on user_profiles
             // Add other fields Branch Admin can update for a Rider
         ];

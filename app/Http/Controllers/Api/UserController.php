@@ -72,6 +72,7 @@ class UserController extends Controller
 
     public function register_rider(RegisterRiderRequest $request)
     {
+        Log::info('User info', $request->all());
         $validated = $request->validated();
         $validated['password'] = Hash::make($validated['password']);
         $validated['ip_address'] = $request->getClientIp();
