@@ -34,14 +34,14 @@ class OrderController extends Controller
         $this->smsService = $smsService;
     }
 
-    public function index(): AnonymousResourceCollection
+    public function index(): JsonResponse
     {
         $cacheKey = 'orders:' . md5(request()->fullUrl());
         
         return Cache::remember($cacheKey, 300, function() {
             $orders = Order::with(['payer', 'branch', 'payments'])
                 ->paginate(30);
-            return OrderResource::collection($orders);
+            return $this->successResponse(OrderResource::collection($orders), 'Orders retrieved successfully');
         });
     }
 

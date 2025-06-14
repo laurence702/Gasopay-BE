@@ -36,6 +36,9 @@ class User extends Authenticatable
         'banned_at',
         'ban_reason',
         'ip_address',
+        'rejection_reason',
+        'rejected_by',
+        'rejected_at',
     ];
 
     /**
@@ -76,6 +79,7 @@ class User extends Authenticatable
         'verification_status' => ProfileVerificationStatusEnum::class,
         'banned_at' => 'datetime',
         'balance' => 'decimal:2',
+        'rejected_at' => 'datetime',
     ];
 
     /**

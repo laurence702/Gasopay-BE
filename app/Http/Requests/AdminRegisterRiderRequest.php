@@ -8,14 +8,16 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
-class RegisterRiderRequest extends FormRequest
+class AdminRegisterRiderRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true; // Anyone can self-register as a rider
+        // Only Admins and Super Admins are authorized to register riders.
+        $user = $this->user();
+        return $user && ($user->role === RoleEnum::Admin || $user->role === RoleEnum::SuperAdmin);
     }
 
     /**
@@ -26,14 +28,14 @@ class RegisterRiderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // User fields
             'fullname' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'phone' => ['required', 'string', 'max:255', 'unique:users'],
             'password' => ['required', 'string', Password::defaults(), 'confirmed'],
-            'branch_id' => ['required', 'exists:branches,id'], // Rider must select a branch
-            
-            // User Profile fields (all required for self-registered riders)
+            'branch_id' => ['nullable', 'exists:branches,id'], // Admin can specify, or it can be derived
+            'verify_now' => ['sometimes', 'boolean'], // Optional: Admin can choose to immediately verify
+
+            // User Profile fields (required for riders)
             'address' => ['required', 'string'],
             'vehicle_type' => ['required', Rule::in(VehicleTypeEnum::cases())],
             'nin' => ['required', 'string'],
@@ -50,8 +52,11 @@ class RegisterRiderRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'role' => RoleEnum::Rider->value, // Explicitly set role to Rider
-        ]);
+        // If an Admin is creating a rider, default the branch_id to their own branch
+        if ($this->user() && $this->user()->role === RoleEnum::Admin && !$this->has('branch_id')) {
+            $this->merge([
+                'branch_id' => $this->user()->branch_id,
+            ]);
+        }
     }
 } 

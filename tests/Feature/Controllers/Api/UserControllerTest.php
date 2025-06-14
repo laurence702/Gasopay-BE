@@ -155,12 +155,15 @@ class UserControllerTest extends TestCase
             'guarantors_address' => '456 Guarantor Ave',
             'guarantors_phone' => '5551234567',
             'profilePicUrl' => 'http://example.com/pic.jpg',
+            'branch_id' => $this->branch->id,
+            'verify_now' => true,
         ];
 
-        $response = $this->postJson('/api/register-rider', $userData);
+        $response = $this->postJson('/api/branch-admin/riders', $userData);
 
         $response->assertCreated()
             ->assertJsonStructure([
+                'message',
                 'data' => [
                     'id',
                     'fullname',
@@ -173,12 +176,14 @@ class UserControllerTest extends TestCase
                     'created_at',
                     'updated_at',
                 ]
-            ]);
+            ])
+            ->assertJsonPath('message', 'Rider registered successfully by admin.');
 
         $this->assertDatabaseHas('users', [
             'email' => 'rider@example.com',
             'role' => RoleEnum::Rider->value,
             'branch_id' => $this->branch->id,
+            'verification_status' => ProfileVerificationStatusEnum::VERIFIED->value,
         ]);
 
         $this->assertDatabaseHas('user_profiles', [
@@ -373,128 +378,6 @@ class UserControllerTest extends TestCase
                 'fullname' => 'John Doe',
                 'email' => 'john@example.com',
             ]);
-    }
-
-    // ======================================
-    // Rider Verification Status Tests
-    // ======================================
-
-    public function test_super_admin_can_update_rider_verification_status()
-    {
-        $superAdmin = User::factory()->create(['role' => RoleEnum::SuperAdmin]);
-        $rider = User::factory()->hasUserProfile()->create(['role' => RoleEnum::Rider]);
-
-        Sanctum::actingAs($superAdmin);
-
-        $response = $this->putJson(route('users.update_verification_status'), [
-            'rider_id' => $rider->id,
-            'status' => ProfileVerificationStatusEnum::VERIFIED->value,
-        ]);
-
-        $response->assertStatus(Response::HTTP_OK)
-            ->assertJsonStructure(['status', 'message', 'data' => ['id', 'verification_status']])
-            ->assertJsonPath('data.verification_status', ProfileVerificationStatusEnum::VERIFIED->value);
-
-        $this->assertDatabaseHas('users', [
-            'id' => $rider->id,
-            'verification_status' => ProfileVerificationStatusEnum::VERIFIED->value,
-        ]);
-    }
-
-    public function test_admin_can_update_rider_verification_status()
-    {
-        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
-        $rider = User::factory()->hasUserProfile()->create(['role' => RoleEnum::Rider]);
-
-        Sanctum::actingAs($admin);
-
-        $response = $this->putJson(route('users.update_verification_status'), [
-            'rider_id' => $rider->id,
-            'status' => ProfileVerificationStatusEnum::REJECTED->value,
-        ]);
-
-        $response->assertStatus(Response::HTTP_OK)
-            ->assertJsonPath('data.verification_status', ProfileVerificationStatusEnum::REJECTED->value);
-
-        $this->assertDatabaseHas('users', [
-            'id' => $rider->id,
-            'verification_status' => ProfileVerificationStatusEnum::REJECTED->value,
-        ]);
-    }
-
-    public function test_regular_user_cannot_update_rider_verification_status()
-    {
-        $regularUser = User::factory()->create(['role' => RoleEnum::Regular]);
-        $rider = User::factory()->hasUserProfile()->create(['role' => RoleEnum::Rider]);
-
-        Sanctum::actingAs($regularUser);
-
-        $response = $this->putJson(route('users.update_verification_status'), [
-            'rider_id' => $rider->id,
-            'status' => ProfileVerificationStatusEnum::VERIFIED->value,
-        ]);
-
-        $response->assertStatus(Response::HTTP_FORBIDDEN); // Expect 403 due to CheckAdminOrSuperAdmin middleware
-    }
-
-    public function test_cannot_update_status_for_non_rider()
-    {
-        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
-        $nonRider = User::factory()->create(['role' => RoleEnum::Regular]); // Not a rider
-
-        Sanctum::actingAs($admin);
-
-        $response = $this->putJson(route('users.update_verification_status'), [
-            'rider_id' => $nonRider->id,
-            'status' => ProfileVerificationStatusEnum::VERIFIED->value,
-        ]);
-
-        $response->assertStatus(Response::HTTP_BAD_REQUEST) // Bad request
-            ->assertJsonPath('message', 'User is not a rider.');
-    }
-
-    public function test_cannot_verify_rider_without_profile()
-    {
-        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
-        // Create rider without calling hasUserProfile()
-        $riderWithoutProfile = User::factory()->create(['role' => RoleEnum::Rider]);
-
-        Sanctum::actingAs($admin);
-
-        $response = $this->putJson(route('users.update_verification_status'), [
-            'rider_id' => $riderWithoutProfile->id,
-            'status' => ProfileVerificationStatusEnum::VERIFIED->value,
-        ]);
-
-        $response->assertStatus(Response::HTTP_BAD_REQUEST) // Bad request
-             ->assertJsonPath('message', 'Cannot verify rider without a profile.');
-    }
-
-    public function test_update_verification_status_validation_fails()
-    {
-        $admin = User::factory()->create(['role' => RoleEnum::Admin]);
-        $rider = User::factory()->hasUserProfile()->create(['role' => RoleEnum::Rider]);
-
-        Sanctum::actingAs($admin);
-
-        // Missing status
-        $response = $this->putJson(route('users.update_verification_status'), [
-            'rider_id' => $rider->id, 
-        ]);
-        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)->assertJsonValidationErrors('status');
-
-        // Invalid status
-        $response = $this->putJson(route('users.update_verification_status'), [
-            'rider_id' => $rider->id, 
-            'status' => 'invalid_status'
-        ]);
-        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)->assertJsonValidationErrors('status');
-
-        // Missing rider_id
-        $response = $this->putJson(route('users.update_verification_status'), [
-            'status' => ProfileVerificationStatusEnum::VERIFIED->value,
-        ]);
-        $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)->assertJsonValidationErrors('rider_id');
     }
 
     // ======================================

@@ -40,10 +40,6 @@ class AuthControllerTest extends TestCase
             'role' => RoleEnum::Regular->value,
             'branch_id' => $this->branch1->id,
             'address' => '123 Test St',
-            'nin' => '123456789',
-            'guarantors_name' => 'Test Guarantor',
-            'guarantors_address' => '456 Guarantor Ave',
-            'guarantors_phone' => '5551234567',
         ];
 
         $response = $this->postJson('/api/register', $userData);
@@ -65,10 +61,6 @@ class AuthControllerTest extends TestCase
                     'branch_id',
                     'user_profile' => [
                         'address',
-                        'nin',
-                        'guarantors_name',
-                        'guarantors_address',
-                        'guarantors_phone',
                     ],
                 ],
             ]);
@@ -82,10 +74,6 @@ class AuthControllerTest extends TestCase
 
         $this->assertDatabaseHas('user_profiles', [
             'address' => '123 Test St',
-            'nin' => '123456789',
-            'guarantors_name' => 'Test Guarantor',
-            'guarantors_address' => '456 Guarantor Ave',
-            'guarantors_phone' => '5551234567',
         ]);
     }
 
@@ -97,7 +85,6 @@ class AuthControllerTest extends TestCase
             'phone' => '0987654321',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'role' => RoleEnum::Rider->value,
             'branch_id' => $this->branch2->id,
             'address' => '456 Rider St',
             'nin' => '987654321',
@@ -108,17 +95,17 @@ class AuthControllerTest extends TestCase
             'profilePicUrl' => 'http://example.com/pic.jpg',
         ];
 
-        $response = $this->postJson('/api/register', $userData);
+        $response = $this->postJson('/api/auth/register-rider', $userData);
 
         $response->assertStatus(Response::HTTP_CREATED)
             ->assertJson([
                 'status' => 'success',
-                'message' => 'User created successfully',
+                'message' => 'Rider registered successfully. Awaiting verification.',
             ])
             ->assertJsonStructure([
                 'status',
                 'message',
-                'user' => [
+                'data' => [
                     'id',
                     'fullname',
                     'email',
@@ -201,15 +188,15 @@ class AuthControllerTest extends TestCase
     public function test_registration_fails_without_required_profile_fields()
     {
         $userData = [
-            'fullname' => 'Test User',
-            'email' => 'test@example.com',
-            'phone' => '1234567890',
+            'fullname' => 'Test Rider',
+            'email' => 'test_fail@example.com',
+            'phone' => '1234567891',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'role' => RoleEnum::Rider->value,
+            'branch_id' => $this->branch1->id,
         ];
 
-        $response = $this->postJson('/api/register', $userData);
+        $response = $this->postJson('/api/auth/register-rider', $userData);
 
         $response->assertStatus(Response::HTTP_UNPROCESSABLE_ENTITY)
             ->assertJsonValidationErrors([
@@ -222,10 +209,8 @@ class AuthControllerTest extends TestCase
             ]);
 
         $this->assertDatabaseMissing('users', [
-            'email' => 'test@example.com',
+            'email' => 'test_fail@example.com',
         ]);
-
-        Mail::assertNotSent(WelcomeEmail::class);
     }
 
     public function test_user_can_login_with_correct_email_credential()

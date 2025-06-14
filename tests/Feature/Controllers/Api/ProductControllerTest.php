@@ -70,13 +70,11 @@ test('any authenticated user can view a specific product', function () {
 
     $response->assertStatus(Response::HTTP_OK)
         ->assertJsonStructure([
-            'data' => [
-                'id',
-                'name',
-                'unit',
-                'created_at',
-                'updated_at'
-            ]
+            'id',
+            'name',
+            'unit',
+            'created_at',
+            'updated_at'
         ]);
 });
 

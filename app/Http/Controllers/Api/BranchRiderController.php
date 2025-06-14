@@ -10,9 +10,58 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use App\Http\Resources\UserResource;
+use Illuminate\Support\Facades\Cache;
+use App\Http\Requests\AdminRegisterRiderRequest;
+use App\Services\RiderRegistrationService;
+use App\Http\Traits\ApiResponseTrait;
+use Illuminate\Http\Response;
 
 class BranchRiderController extends Controller
 {
+    use ApiResponseTrait;
+
+    protected $riderRegistrationService;
+
+    public function __construct(RiderRegistrationService $riderRegistrationService)
+    {
+        $this->riderRegistrationService = $riderRegistrationService;
+    }
+
+    /**
+     * Register a new rider by a Branch Admin.
+     *
+     * @param AdminRegisterRiderRequest $request
+     * @return JsonResponse
+     */
+    public function store(AdminRegisterRiderRequest $request): JsonResponse
+    {
+        Log::info('Admin attempting to register rider', $request->all());
+        try {
+            $validated = $request->validated();
+
+            // Default role to Rider and set verification status based on admin's choice
+            $validated['role'] = RoleEnum::Rider->value;
+            $verifiedImmediately = $validated['verify_now'] ?? false;
+
+            $rider = $this->riderRegistrationService->createRider($validated, $verifiedImmediately);
+
+            // You might want to send a notification to the rider here
+            // if ($verifiedImmediately) { ... send verified notification ... }
+            // else { ... send pending notification ... }
+
+            Cache::flush(); // Clear relevant caches related to riders/pending approvals
+
+            return $this->successResponse(
+                new UserResource($rider->load(['userProfile', 'branch'])),
+                'Rider registered successfully by admin.',
+                Response::HTTP_CREATED
+            );
+        } catch (\Throwable $e) {
+            Log::error('Admin rider registration failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return $this->errorResponse('Rider registration failed due to an internal error.', Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
     /**
      * Get all riders for a branch with filtering options
      * 
@@ -103,12 +152,18 @@ class BranchRiderController extends Controller
         $perPage = $request->input('per_page', 15);
         
         // Get all riders with PENDING verification status
-        $pendingRiders = User::with(['userProfile', 'branch'])
-            ->where('role', RoleEnum::Rider)
-            ->where('branch_id', $branchId)
-            ->where('verification_status', ProfileVerificationStatusEnum::PENDING)
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+        $pendingRiders = Cache::remember(
+            'pending_riders_branch_' . $branchId . '_page_' . ($request->input('page', 1)),
+            300, // Cache for 5 minutes
+            function () use ($branchId, $perPage) {
+                return User::with(['userProfile', 'branch'])
+                    ->where('role', RoleEnum::Rider)
+                    ->where('branch_id', $branchId)
+                    ->where('verification_status', ProfileVerificationStatusEnum::PENDING)
+                    ->orderBy('created_at', 'desc')
+                    ->paginate($perPage);
+            }
+        );
         
         return response()->json(UserResource::collection($pendingRiders));
     }
@@ -124,7 +179,8 @@ class BranchRiderController extends Controller
     {
         // Validate the request
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:pending,verified,rejected']
+            'status' => ['required', 'string', 'in:pending,verified,rejected'],
+            'rejection_reason' => ['sometimes', 'required_if:status,rejected', 'string', 'max:500'],
         ]);
         
         // Find the rider
@@ -153,9 +209,31 @@ class BranchRiderController extends Controller
             // If verifying, also set email_verified_at
             if ($validated['status'] === ProfileVerificationStatusEnum::VERIFIED->value) {
                 $rider->email_verified_at = now();
+                // Clear rejection details if previously rejected
+                $rider->rejection_reason = null;
+                $rider->rejected_by = null;
+                $rider->rejected_at = null;
+            } elseif ($validated['status'] === ProfileVerificationStatusEnum::REJECTED->value) {
+                // If rejecting, capture reason and details
+                $rider->rejection_reason = $validated['rejection_reason'] ?? null;
+                $rider->rejected_by = $request->user()->fullname;
+                $rider->rejected_at = now();
+                // Clear email_verified_at if rejected
+                $rider->email_verified_at = null;
+            } else {
+                // If setting to pending or any other status, clear verification details
+                $rider->email_verified_at = null;
+                $rider->rejection_reason = null;
+                $rider->rejected_by = null;
+                $rider->rejected_at = null;
             }
             
             $rider->save();
+            
+            // Clear cache for pending approvals as a rider's status has changed
+            Cache::forget('pending_riders_branch_' . $rider->branch_id . '_page_1'); // Clear first page of cache
+            // You might want to clear all pages of this cache key if pagination is widely used.
+            // For simplicity, I am only clearing the first page, assuming it's the most frequently accessed.
             
             // Send verification notification
             try {

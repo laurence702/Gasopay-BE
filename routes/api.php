@@ -28,11 +28,10 @@ use App\Http\Middleware\CheckAdminOrSuperAdmin;
 
 // Auth routes
 Route::post('/register', [AuthController::class, 'register'])->name('register');
+Route::post('/auth/register-rider', [AuthController::class, 'registerRider'])->name('auth.register_rider');
 Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
 Route::get('/me', [AuthController::class, 'loggedInUser'])->middleware('auth:sanctum')->name('user');
-
-Route::post('/register-rider', [UserController::class, 'register_rider'])->name('users.register_rider');
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/branches', [BranchController::class, 'index'])->name('branches.index');
@@ -52,6 +51,37 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 return response()->json(['message' => 'Branch not found.'], 404);
             });
     });
+
+    // Removed Riders management from here and moved to branch-admin prefixed group
+    // Route::get('/riders', [App\Http\Controllers\Api\BranchRiderController::class, 'getRiders'])
+    //     ->name('branch-admin.riders');
+    // Route::post('/riders', [App\Http\Controllers\Api\BranchRiderController::class, 'store'])
+    //     ->name('branch-admin.riders.store');
+    
+    // Removed Pending approvals from here and moved to branch-admin prefixed group
+    // Route::get('/pending-approvals', [App\Http\Controllers\Api\BranchRiderController::class, 'getPendingApprovals'])
+    //     ->name('branch-admin.pending-approvals');
+    
+    // Removed Update rider verification status from here and moved to branch-admin prefixed group
+    // Route::put('/riders/{id}/verification', [App\Http\Controllers\Api\BranchRiderController::class, 'updateVerificationStatus'])
+    //     ->name('branch-admin.update-verification');
+
+    // Update rider information by Branch Admin (This seems to be handled by UserController, not BranchRiderController, keep it here for now)
+    Route::put('/riders/{user}', [UserController::class, 'branchAdminUpdateRider'])->name('branch-admin.riders.update');
+
+    // Product Management
+    Route::get('/products', [App\Http\Controllers\Api\BranchProductController::class, 'getProducts'])
+        ->name('branch-admin.products');
+    Route::get('/products/{id}', [App\Http\Controllers\Api\BranchProductController::class, 'getProduct'])
+        ->name('branch-admin.product');
+    
+    // QR Scanner
+    Route::post('/scan', [App\Http\Controllers\Api\QRScannerController::class, 'processScan'])
+        ->name('branch-admin.scan');
+    
+    // create Order
+    Route::post('/orders', [App\Http\Controllers\Api\OrderController::class, 'createOrder'])
+        ->name('branch-admin.create-order');
 });
 
 // Super Admin routes
@@ -136,35 +166,20 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\BranchAdmin::class])->pr
     // Order history - accessible to all authenticated users
     Route::get('/orders/history', [App\Http\Controllers\Api\BranchActivityController::class, 'getOrderHistory'])
         ->name('orders.history');
-    
-    // Riders management
+
+    // Riders management (Moved from general auth group)
     Route::get('/riders', [App\Http\Controllers\Api\BranchRiderController::class, 'getRiders'])
         ->name('branch-admin.riders');
+    Route::post('/riders', [App\Http\Controllers\Api\BranchRiderController::class, 'store'])
+        ->name('branch-admin.riders.store');
     
-    // Pending approvals
+    // Pending approvals (Moved from general auth group)
     Route::get('/pending-approvals', [App\Http\Controllers\Api\BranchRiderController::class, 'getPendingApprovals'])
         ->name('branch-admin.pending-approvals');
     
-    // Update rider verification status
+    // Update rider verification status (Moved from general auth group)
     Route::put('/riders/{id}/verification', [App\Http\Controllers\Api\BranchRiderController::class, 'updateVerificationStatus'])
         ->name('branch-admin.update-verification');
-
-    // Update rider information by Branch Admin
-    Route::put('/riders/{user}', [UserController::class, 'branchAdminUpdateRider'])->name('branch-admin.riders.update');
-
-    // Product Management
-    Route::get('/products', [App\Http\Controllers\Api\BranchProductController::class, 'getProducts'])
-        ->name('branch-admin.products');
-    Route::get('/products/{id}', [App\Http\Controllers\Api\BranchProductController::class, 'getProduct'])
-        ->name('branch-admin.product');
-    
-    // QR Scanner
-    Route::post('/scan', [App\Http\Controllers\Api\QRScannerController::class, 'processScan'])
-        ->name('branch-admin.scan');
-    
-    // create Order
-    Route::post('/orders', [App\Http\Controllers\Api\OrderController::class, 'createOrder'])
-        ->name('branch-admin.create-order');
 });
 
 // Payment proof routes

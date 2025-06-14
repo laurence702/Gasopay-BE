@@ -11,6 +11,11 @@ use App\Enums\VehicleTypeEnum;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Arr;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\PaymentHistory;
+use App\Models\PaymentProof;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -49,7 +54,7 @@ class DatabaseSeeder extends Seeder
         // Create super admin with a unique phone number
         $superAdminPhone = $this->generateUniquePhone();
         User::factory()->create([
-            'fullname' => $this->getRandomName(),
+            'fullname' => 'Ifuoma Kelechi',
             'email' => 'admin@example.com',
             'phone' => $superAdminPhone,
             'password' => Hash::make('password'),
@@ -85,6 +90,7 @@ class DatabaseSeeder extends Seeder
         ];
 
         // Create riders
+        $riders = [];
         for ($i = 1; $i <= 5; $i++) {
             $isBanned = $i <= 2;
             $verificationStatus = Arr::random($verificationStatuses);
@@ -112,8 +118,80 @@ class DatabaseSeeder extends Seeder
                 "address" => $this->getRandomAddress(),
                 "profile_pic_url" => '/path/to/image'. $i,
             ]);
+
+            $riders[] = $rider;
         }
-       }
+
+        // Create regular users
+        $users = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $user = User::factory()->create([
+                'fullname' => $this->getRandomName(),
+                'phone' => $this->generateUniquePhone(),
+                'email' => "user{$i}@example.com",
+                'role' => RoleEnum::Regular,
+                'password' => Hash::make('password'),
+                'verification_status' => ProfileVerificationStatusEnum::VERIFIED,
+            ]);
+            $users[] = $user;
+        }
+
+        // Create products
+        $products = [
+            ['name' => 'CNG', 'unit' => 'kg', 'description' => 'Compressed Natural Gas'],
+            ['name' => 'PMS', 'unit' => 'litre', 'description' => 'Premium Motor Spirit'],
+            ['name' => 'LPG', 'unit' => 'kg', 'description' => 'Liquefied Petroleum Gas'],
+        ];
+
+        foreach ($products as $product) {
+            Product::create($product);
+        }
+
+        // Create orders with payment histories and proofs
+        $paymentMethods = ['cash', 'bank_transfer', 'wallet'];
+        $paymentStatuses = ['pending', 'paid', 'failed', 'completed', 'approved', 'rejected'];
+        $productTypes = ['cng', 'pms', 'lpg'];
+
+        for ($i = 1; $i <= 50; $i++) {
+            $order = Order::create([
+                'order_reference' => 'ORD' . str_pad($i, 6, '0', STR_PAD_LEFT),
+                'payer_id' => $users[array_rand($users)]->id,
+                'created_by' => $riders[array_rand($riders)]->id,
+                'branch_id' => $branches->random()->id,
+                'product' => $productTypes[array_rand($productTypes)],
+                'amount_due' => rand(1000, 10000),
+                'payment_type' => ['full', 'part'][rand(0, 1)],
+                'payment_method' => $paymentMethods[array_rand($paymentMethods)],
+                'payment_status' => $paymentStatuses[array_rand($paymentStatuses)],
+                'created_at' => now()->subDays(rand(0, 30)),
+            ]);
+
+            // Create payment history
+            $paymentHistory = PaymentHistory::create([
+                'order_id' => $order->id,
+                'user_id' => $order->payer_id,
+                'amount' => $order->amount_due,
+                'payment_method' => $order->payment_method,
+                'status' => $order->payment_status,
+                'reference' => 'PAY' . str_pad($i, 6, '0', STR_PAD_LEFT),
+                'approved_by' => $order->payment_status === 'approved' ? $branches->first()->users()->where('role', RoleEnum::Admin)->first()->id : null,
+                'approved_at' => $order->payment_status === 'approved' ? now() : null,
+                'branch_id' => $order->branch_id,
+                'created_at' => $order->created_at,
+            ]);
+
+            // Create payment proof if payment method is bank_transfer
+            if ($order->payment_method === 'bank_transfer') {
+                PaymentProof::create([
+                    'payment_history_id' => $paymentHistory->id,
+                    'proof_url' => 'https://example.com/proofs/proof-' . Str::random(10) . '.jpg',
+                    'status' => $order->payment_status === 'approved' ? 'approved' : 'pending',
+                    'approved_by' => $order->payment_status === 'approved' ? $branches->first()->users()->where('role', RoleEnum::Admin)->first()->id : null,
+                    'approved_at' => $order->payment_status === 'approved' ? now() : null,
+                ]);
+            }
+        }
+    }
 
     private function getRandomName(): string
     {

@@ -70,59 +70,6 @@ class UserController extends Controller
         );
     }
 
-    public function register_rider(RegisterRiderRequest $request)
-    {
-        Log::info('User info', $request->all());
-        $validated = $request->validated();
-        $validated['password'] = Hash::make($validated['password']);
-        $validated['ip_address'] = $request->getClientIp();
-        $validated['role'] = RoleEnum::Rider;
-        $validated['branch_id'] = ($request->user()->role == RoleEnum::Admin) ? $request->user()->branch_id : $request->branch_id;
-        try {
-            $user = DB::transaction(function () use ($validated, $request) {
-                $user = User::create($validated);
-
-                $user->userProfile()->create([
-                    'phone' => $validated['phone'],
-                    'address' => $validated['address'],
-                    'nin' => $validated['nin'],
-                    'guarantors_name' => $validated['guarantors_name'],
-                    'guarantors_address' => $validated['guarantors_address'],
-                    'branch_id' => $validated['branch_id'],
-                    'guarantors_phone' => $validated['guarantors_phone'],
-                    'vehicle_type' => $validated['vehicle_type'],
-                    'profile_pic_url' => $validated['profilePicUrl'],
-                    'ip_address' => $validated['ip_address']
-                ]);
-
-                return $user;
-            });
-
-            // Send welcome SMS to the rider
-            try {
-                $smsService = app()->make(\App\Services\AfricasTalkingService::class);
-                $smsService->send(
-                    $user->phone,
-                    "Welcome to Gasopay! Your rider account has been created. Your verification status is pending. You will be notified once your account is verified."
-                );
-            } catch (\Exception $e) {
-                Log::warning('Failed to send welcome SMS: ' . $e->getMessage());
-            }
-
-            Cache::flush();
-
-            return $this->successResponse(
-                new UserResource($user->load(['branch', 'userProfile'])),
-                'Rider registered successfully.',
-                Response::HTTP_CREATED
-            );
-
-        } catch (\Throwable $e) {
-            Log::error('Rider registration failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-            return $this->errorResponse('Rider registration failed due to an internal error.', Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
-    }
-
     public function createAdmin(CreateAdminRequest $request): JsonResponse
     {
         try {
@@ -144,7 +91,6 @@ class UserController extends Controller
             return $this->errorResponse('Admin creation failed.', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-
 
     public function show(User $user): JsonResponse
     {

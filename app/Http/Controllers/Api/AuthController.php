@@ -17,9 +17,27 @@ use App\Enums\RoleEnum;
 use Illuminate\Support\Facades\DB;
 use App\Http\Resources\UserResource;
 use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRiderRequest;
+use App\Services\RiderRegistrationService;
+use Illuminate\Http\Response;
+use App\Http\Traits\ApiResponseTrait;
+use App\Enums\ProfileVerificationStatusEnum;
+use Illuminate\Http\JsonResponse;
 
 class AuthController extends Controller
 {
+    use ApiResponseTrait;
+
+    protected $riderRegistrationService;
+
+    public function __construct(RiderRegistrationService $riderRegistrationService)
+    {
+        $this->riderRegistrationService = $riderRegistrationService;
+    }
+
+    /**
+     * Register a new general user (not a rider).
+     */
     public function register(RegisterUserRequest $request)
     {
         try {
@@ -35,20 +53,16 @@ class AuthController extends Controller
                 'branch_id' => $validated['branch_id'] ?? null,
             ]);
 
-            // Create user profile for regular users and riders
-            if (in_array($validated['role'], [RoleEnum::Regular->value, RoleEnum::Rider->value])) {
+            // Create user profile for regular users
+            if ($validated['role'] === RoleEnum::Regular->value) {
                 $user->userProfile()->create([
                     'address' => $validated['address'] ?? null,
-                    'nin' => $validated['nin'] ?? null,
-                    'guarantors_name' => $validated['guarantors_name'] ?? null,
-                    'guarantors_address' => $validated['guarantors_address'] ?? null,
-                    'guarantors_phone' => $validated['guarantors_phone'] ?? null,
-                    'vehicle_type' => $validated['vehicle_type'] ?? null,
                     'profile_pic_url' => $validated['profilePicUrl'] ?? null,
                 ]);
             }
 
             // Send welcome email
+            // Note: Password is included here. Consider if this is secure for production.
             Mail::to($user->email)->send(new WelcomeEmail($user, $validated['password']));
 
             DB::commit();
@@ -58,13 +72,51 @@ class AuthController extends Controller
                 'status' => 'success',
                 'message' => 'User created successfully',
                 'user' => new UserResource($user),
-            ], 201);
+            ], Response::HTTP_CREATED);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Failed to create user: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to create user: ' . $e->getMessage(),
-            ], 500);
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Register a new rider (self-registration).
+     */
+    public function registerRider(RegisterRiderRequest $request): JsonResponse
+    {
+        Log::info('Rider self-registration attempt', $request->all());
+        try {
+            $validated = $request->validated();
+            
+            // Default role to Rider and set verification status to pending
+            $validated['role'] = RoleEnum::Rider->value;
+            $validated['verification_status'] = ProfileVerificationStatusEnum::PENDING->value;
+
+            $rider = $this->riderRegistrationService->createRider($validated, false);
+
+            // Send welcome SMS to the rider
+            try {
+                $smsService = app()->make(\App\Services\AfricasTalkingService::class);
+                $smsService->send(
+                    $rider->phone,
+                    "Welcome to Gasopay! Your rider account has been created. Your verification status is pending. You will be notified once your account is verified."
+                );
+            } catch (\Exception $e) {
+                Log::warning('Failed to send welcome SMS for rider self-registration: ' . $e->getMessage());
+            }
+
+            return $this->successResponse(
+                new UserResource($rider->load(['branch', 'userProfile'])),
+                'Rider registered successfully. Awaiting verification.',
+                Response::HTTP_CREATED
+            );
+        } catch (\Throwable $e) {
+            Log::error('Rider self-registration failed:', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return $this->errorResponse('Rider self-registration failed due to an internal error.', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
